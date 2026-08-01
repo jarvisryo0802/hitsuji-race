@@ -8,811 +8,199 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ひつじレース">
 <meta name="theme-color" content="#7ec8ff">
-<title>ひつじレース</title>
+<title>まかいの ひつじレース</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" href="./icon-192.png">
-<style>
-  :root{
-    --sky1:#8fd3ff; --sky2:#cfeeff;
-    --grass:#7bd06a; --grass2:#66c257;
-    --ink:#3c3a4e;
-    --pop:#ff6b9d;
-    --lane-h: 78px; --sw: 76px;
-  }
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{
-    height:100%; margin:0; padding:0;
-    overflow:hidden; overscroll-behavior:none;
-    touch-action:manipulation;
-    -webkit-user-select:none; user-select:none;
-    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","Hiragino Sans",system-ui,-apple-system,sans-serif;
-    color:var(--ink);
-  }
-  body{
-    background:linear-gradient(180deg,var(--sky1) 0%, var(--sky2) 55%, #e9f9d9 100%);
-    display:flex; flex-direction:column;
-  }
-  #app{
-    position:relative; flex:1; display:flex; flex-direction:column;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    overflow:hidden;
-  }
-
-  /* ---------- 背景の雲 ---------- */
-  .clouds{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
-  .cloud{ position:absolute; background:#fff; border-radius:999px; opacity:.85;
-          box-shadow: 34px 8px 0 -6px #fff, 66px 0px 0 -12px #fff, -30px 10px 0 -8px #fff; }
-  .c1{ width:78px; height:34px; top:8%;  animation:drift 46s linear infinite; }
-  .c2{ width:56px; height:26px; top:20%; animation:drift 62s linear infinite; animation-delay:-20s; opacity:.7 }
-  .c3{ width:96px; height:40px; top:33%; animation:drift 78s linear infinite; animation-delay:-45s; opacity:.6 }
-  @keyframes drift{ from{ transform:translateX(-140px);} to{ transform:translateX(110vw);} }
-
-  /* ---------- 画面 ---------- */
-  .screen{
-    position:absolute; inset:0; z-index:1;
-    display:none; flex-direction:column; align-items:center;
-    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-  }
-  .screen.on{ display:flex; animation:fadeIn .25s ease both; }
-  @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
-
-  h1.logo{
-    margin:6vh 0 0; font-size:clamp(38px,13vw,64px); line-height:1.05; letter-spacing:2px;
-    color:#fff; text-align:center;
-    text-shadow: 0 4px 0 #ff8fb4, 0 8px 0 #e5628f, 0 12px 18px rgba(0,0,0,.18);
-    animation:pop .6s cubic-bezier(.2,1.6,.4,1) both;
-  }
-  @keyframes pop{ from{transform:scale(.6) rotate(-4deg); opacity:0} to{transform:none; opacity:1} }
-  .sub{ margin:10px 0 0; font-size:16px; color:#4a6b7a; font-weight:700; }
-
-  .btn{
-    -webkit-appearance:none; appearance:none; border:none; cursor:pointer;
-    font-family:inherit; font-weight:800; color:#fff;
-    background:linear-gradient(180deg,#ff8ab5,#ff5f92);
-    border-radius:22px; padding:18px 26px; font-size:22px; min-width:220px;
-    box-shadow:0 6px 0 #d8447a, 0 10px 18px rgba(0,0,0,.16);
-    transition:transform .08s, box-shadow .08s;
-  }
-  .btn:active{ transform:translateY(5px); box-shadow:0 1px 0 #d8447a, 0 4px 10px rgba(0,0,0,.14); }
-  .btn.blue{ background:linear-gradient(180deg,#7fc7ff,#3fa3f5); box-shadow:0 6px 0 #2d7ec2, 0 10px 18px rgba(0,0,0,.16); }
-  .btn.blue:active{ box-shadow:0 1px 0 #2d7ec2, 0 4px 10px rgba(0,0,0,.14); }
-  .btn.green{ background:linear-gradient(180deg,#8ee07d,#57c246); box-shadow:0 6px 0 #3d9631, 0 10px 18px rgba(0,0,0,.16); }
-  .btn.green:active{ box-shadow:0 1px 0 #3d9631, 0 4px 10px rgba(0,0,0,.14); }
-  .btn.small{ font-size:17px; padding:13px 20px; min-width:0; border-radius:16px; }
-
-  .stack{ display:flex; flex-direction:column; gap:14px; align-items:center; margin-top:auto; margin-bottom:6vh; }
-  .card{ background:rgba(255,255,255,.86); border-radius:24px; padding:16px; width:100%; max-width:520px;
-         box-shadow:0 8px 24px rgba(0,0,0,.10); }
-  .ttl{ font-size:20px; font-weight:800; text-align:center; margin:0 0 12px; color:#4a6b7a; }
-
-  /* ---------- ひつじ選び ---------- */
-  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .pick{
-    background:#fff; border:4px solid #e6eef2; border-radius:20px; padding:8px 4px 6px;
-    display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer;
-    transition:transform .1s, border-color .1s;
-  }
-  .pick:active{ transform:scale(.95); }
-  .pick.sel{ border-color:var(--pick,#ff6b9d); background:var(--picklight,#ffeef4); transform:scale(1.03); }
-  .pick .nm{ font-size:13px; font-weight:800; }
-  .pick svg{ width:100%; height:44px; }
-
-  .chips{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-  .chip{
-    background:#fff; border:4px solid #e6eef2; border-radius:999px; padding:10px 18px;
-    font-size:16px; font-weight:800; color:#6b7a86; cursor:pointer; transition:transform .1s;
-  }
-  .chip:active{ transform:scale(.94); }
-  .chip.sel{ background:#ffe9f1; border-color:#ff6b9d; color:#d8447a; }
-
-  /* ---------- レース ---------- */
-  #race{ padding:0; justify-content:flex-start; }
-  .hud{
-    width:100%; display:flex; align-items:center; gap:10px; padding:10px 66px 6px 14px;
-    padding-top:calc(10px + env(safe-area-inset-top));
-    min-height:calc(60px + env(safe-area-inset-top));   /* おとボタンが コースに かぶらないように */
-  }
-  .hud .lbl{ font-size:14px; font-weight:800; color:#4a6b7a; }
-  .meter{ flex:1; height:14px; background:rgba(255,255,255,.7); border-radius:999px; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.08); }
-  .meter i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffd45e,#ff8ab5); border-radius:999px; transition:width .1s linear; }
-
-  .track{ width:100%; flex:1; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:4px 0; }
-  .lane{
-    position:relative; height:var(--lane-h); margin:0 10px; border-radius:14px;
-    background:linear-gradient(180deg,var(--grass),var(--grass2));
-    box-shadow:inset 0 2px 0 rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.08);
-    overflow:hidden;
-  }
-  .lane::after{ /* 草のライン */
-    content:""; position:absolute; inset:0; opacity:.18;
-    background:repeating-linear-gradient(90deg, transparent 0 26px, rgba(255,255,255,.9) 26px 29px);
-  }
-  .goal{
-    position:absolute; right:0; top:0; bottom:0; width:16px; z-index:3;
-    background:repeating-conic-gradient(#fff 0 25%, #333 0 50%) 0 0/10px 10px;
-    box-shadow:-2px 0 6px rgba(0,0,0,.15);
-  }
-  /* レールの幅は「ひつじ1ぴきぶん」せまくしてあるので、left:100% でちょうどゴールに着く */
-  .rail{ position:absolute; left:6px; right:calc(22px + var(--sw)); top:0; bottom:0; z-index:2; }
-  .runner{ position:absolute; bottom:2px; left:0; width:var(--sw); transition:none; }
-  .runner .badge{
-    position:absolute; top:-4px; left:-2px; width:24px; height:24px; border-radius:50%;
-    background:#fff; color:var(--ink); font-size:14px; font-weight:900;
-    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2);
-    border:3px solid var(--c,#ff6b9d);
-  }
-  .runner .nametag{
-    position:absolute; top:-15px; left:18%; font-size:11px; font-weight:800; color:#fff;
-    background:rgba(0,0,0,.32); padding:1px 7px; border-radius:999px; white-space:nowrap;
-  }
-  /* れんだボタンと おなじ色にして じぶんの ひつじが すぐ わかるように */
-  .runner.me .nametag{ background:#ff8a2b; }
-  .runner.p2 .nametag{ background:#3fa3f5; }
-  .runner svg{ width:100%; height:auto; display:block; }
-  .bob{ animation:bob .34s infinite ease-in-out; transform-origin:50% 100%; }
-  @keyframes bob{ 0%,100%{transform:translateY(0) rotate(-1.5deg)} 50%{transform:translateY(-5px) rotate(1.5deg)} }
-  .leg{ transform-box:fill-box; transform-origin:50% 0%; animation:legs .3s infinite linear; }
-  .lg2{ animation-delay:-.15s } .lg3{ animation-delay:-.07s } .lg4{ animation-delay:-.22s }
-  @keyframes legs{ 0%{transform:rotate(24deg)} 50%{transform:rotate(-24deg)} 100%{transform:rotate(24deg)} }
-  .paused .bob, .paused .leg{ animation-play-state:paused; }
-
-  .dust{ position:absolute; bottom:4px; width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.85);
-         pointer-events:none; animation:dust .5s ease-out forwards; z-index:1; }
-  @keyframes dust{ from{transform:scale(.4); opacity:.9} to{transform:scale(1.7) translate(-18px,-10px); opacity:0} }
-
-  .popup{ position:absolute; font-size:13px; font-weight:900; color:#fff; padding:2px 9px; border-radius:999px;
-          white-space:nowrap; z-index:5; animation:rise 1.1s ease-out forwards; pointer-events:none; }
-  .popup.good{ background:#ff9500 } .popup.bad{ background:#7a8b99 }
-  @keyframes rise{ 0%{transform:translateY(0); opacity:0} 15%{opacity:1} 100%{transform:translateY(-38px); opacity:0} }
-
-  /* タップゾーン */
-  .zones{ display:flex; gap:10px; padding:8px 10px calc(12px + env(safe-area-inset-bottom)); width:100%; }
-  .zone{
-    flex:1; height:110px; border-radius:24px; border:none; cursor:pointer; font-family:inherit;
-    color:#fff; font-size:30px; font-weight:900; letter-spacing:3px;
-    background:linear-gradient(180deg,#ffb04d,#ff8a2b);
-    box-shadow:0 7px 0 #d96b17, 0 10px 20px rgba(0,0,0,.18);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    transition:transform .05s, box-shadow .05s;
-  }
-  .zone:active,.zone.hit{ transform:translateY(6px); box-shadow:0 1px 0 #d96b17; }
-  .zone .who{ font-size:13px; letter-spacing:1px; opacity:.95; font-weight:800 }
-  .zone.p2{ background:linear-gradient(180deg,#7fc7ff,#3fa3f5); box-shadow:0 7px 0 #2d7ec2, 0 10px 20px rgba(0,0,0,.18); }
-  .zone.p2:active,.zone.p2.hit{ box-shadow:0 1px 0 #2d7ec2; }
-
-  /* カウントダウン */
-  #count{
-    position:absolute; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.25); backdrop-filter:blur(2px);
-  }
-  #count.on{ display:flex }
-  #count span{ font-size:clamp(70px,26vw,150px); font-weight:900; color:#fff;
-    text-shadow:0 6px 0 #ff5f92, 0 12px 24px rgba(0,0,0,.3); animation:cd .8s ease-out; }
-  @keyframes cd{ 0%{transform:scale(2.2); opacity:0} 30%{transform:scale(1); opacity:1} 100%{transform:scale(.9); opacity:.9} }
-
-  /* ---------- けっか ---------- */
-  .rank{ display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:8px 12px; margin-bottom:8px;
-         box-shadow:0 3px 8px rgba(0,0,0,.07); }
-  .rank.me{ background:#fff3f7; box-shadow:0 0 0 3px #ffb3cd inset, 0 3px 8px rgba(0,0,0,.07); }
-  .rank .no{ font-size:22px; width:34px; text-align:center; font-weight:900 }
-  .rank svg{ width:52px; height:38px; flex:none }
-  .rank .nm2{ flex:1; font-weight:800; font-size:16px }
-  .rank .tm{ font-size:14px; color:#8899a4; font-weight:800 }
-  .bigmsg{ font-size:clamp(28px,9vw,42px); font-weight:900; text-align:center; color:#fff; margin:2vh 0 12px;
-           text-shadow:0 4px 0 #ff8fb4, 0 8px 16px rgba(0,0,0,.2); animation:pop .5s cubic-bezier(.2,1.6,.4,1) both; }
-  .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px }
-  .stat{ text-align:center; font-size:14px; font-weight:800; color:#5c7180; margin-top:8px }
-
-  .conf{ position:absolute; top:-14px; width:10px; height:16px; z-index:9; pointer-events:none; border-radius:2px;
-         animation:fall linear forwards; }
-  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); } }
-
-  /* よこむきだと レーンが つぶれてしまうので たてむきに してもらう */
-  #rotate{ position:absolute; inset:0; z-index:60; display:none; flex-direction:column; gap:14px;
-           align-items:center; justify-content:center; background:var(--sky1); text-align:center;
-           font-size:22px; font-weight:900; color:#fff; padding:20px; text-shadow:0 3px 0 #5fb0e0; }
-  #rotate svg{ width:130px; animation:bob .5s infinite ease-in-out }
-  @media (orientation:landscape) and (max-height:560px){ #rotate{ display:flex } }
-
-  .mute{ position:absolute; top:calc(10px + env(safe-area-inset-top)); right:14px; z-index:30;
-         width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,.8);
-         font-size:20px; cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,.12); }
-</style>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <div id="app">
-  <div class="clouds"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
+  <div class="clouds"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
   <button class="mute" id="muteBtn" aria-label="おと">🔊</button>
-  <div id="rotate"><div id="rotateSheep"></div>スマホを たてむきに してね</div>
 
-  <!-- タイトル -->
-  <section class="screen on" id="title">
-    <h1 class="logo">ひつじ<br>レース</h1>
-    <div id="titleSheep" style="margin-top:10px"></div>
-    <p class="sub">ボタンを れんだ して いちばんに ゴールしよう！</p>
-    <div class="stack">
-      <button class="btn" id="btn1p">ひとりで あそぶ</button>
-      <button class="btn blue" id="btn2p">ふたりで あそぶ</button>
-      <div class="stat" id="titleStat"></div>
-    </div>
-  </section>
-
-  <!-- ひつじ選び -->
-  <section class="screen" id="select">
-    <div style="height:calc(52px + env(safe-area-inset-top))"></div>
+  <!-- ============ はじめての とうろく ============ -->
+  <section class="screen" id="boot">
+    <div class="pad"></div>
+    <h1 class="logo">まかいの<br>ひつじレース</h1>
     <div class="card">
-      <p class="ttl" id="selTtl">じぶんの ひつじを えらぼう</p>
-      <div class="grid" id="sheepGrid"></div>
+      <p class="ttl">あいぼうの ひつじを つくろう</p>
+      <div class="sheepbox big" id="bootSheep"></div>
+      <p class="lbl">いろ</p>
+      <div class="colors" id="bootColors"></div>
+      <p class="lbl">なまえ</p>
+      <input id="bootName" class="tinput" maxlength="8" placeholder="なまえを いれてね">
+      <div class="chips" id="bootIdeas"></div>
     </div>
-    <div class="card" id="diffCard" style="margin-top:12px">
-      <p class="ttl">つよさを えらぼう</p>
-      <div class="chips" id="diffChips"></div>
+    <button class="btn big green" id="bootGo">この ひつじに きめる！</button>
+    <p class="fine">※ 実在の牧場とは関係のない、こども向けの非公式ファンゲームです</p>
+  </section>
+
+  <!-- ============ ぼくじょう（ホーム）============ -->
+  <section class="screen" id="farm">
+    <div class="topbar">
+      <div class="sign" id="farmSign">🐑 ぼくじょう</div>
+      <div class="money">💰 <b id="farmMoney">0</b>えん</div>
     </div>
-    <div class="stack" style="margin-bottom:3vh">
-      <button class="btn green" id="btnGo">スタート！</button>
-      <button class="btn small blue" id="btnBack">もどる</button>
+
+    <div class="card farmcard">
+      <div class="sheepbox" id="farmSheep"></div>
+      <div class="namerow">
+        <b id="farmName">-</b>
+        <span class="rankpill" id="farmRank">-</span>
+        <span class="dayspill"><b id="farmDays">0</b>日め</span>
+      </div>
+      <p class="speech" id="farmWant"></p>
+
+      <div class="stats">
+        <div class="strow2"><span>⚡ はやさ</span><i class="bar"><b id="stSpeedBar"></b></i><em id="stSpeedVal">0</em></div>
+        <div class="strow2"><span>💪 スタミナ</span><i class="bar"><b id="stStamBar"></b></i><em id="stStamVal">0</em></div>
+        <div class="strow2"><span>💖 なかよし</span><i class="bar"><b id="stLoveBar"></b></i><em id="stLoveVal">0</em></div>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="mbtn orange" id="btnCare">
+        <span class="mi">🧺</span><span class="mt">キッズファーム</span><span class="sub">あと 3かい</span>
+      </button>
+      <button class="mbtn pink" id="btnRace">
+        <span class="mi">🏁</span><span class="mt">レースに でる</span><span class="sub">1日 1かい</span>
+      </button>
+      <button class="mbtn blue" id="btnShop">
+        <span class="mi">🥤</span><span class="mt">エサの じはんき</span><span class="sub">100えん〜</span>
+      </button>
+      <button class="mbtn purple" id="btnGacha">
+        <span class="mi">🎁</span><span class="mt">ガチャ</span><span class="sub">300えん</span>
+      </button>
+      <button class="mbtn green wide" id="btnBag">
+        <span class="mi">🎒</span><span class="mt">もちもの・わざ</span><span class="sub">レースの じゅんび</span>
+      </button>
+    </div>
+
+    <div class="card">
+      <p class="ttl small">きょうまでの できごと</p>
+      <ul class="log" id="farmLog"></ul>
+    </div>
+    <p class="hidden-hint">きょう できること：おせわ <b id="careLeft">3</b>かい／レース <b id="raceLeft">1</b>かい</p>
+    <p class="fine">※ 実在の牧場とは関係のない、こども向けの非公式ファンゲームです</p>
+  </section>
+
+  <!-- ============ キッズファーム（おせわ）============ -->
+  <section class="screen" id="care">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="sign small">🧺 キッズファーム</div></div>
+    <div class="card">
+      <p class="ttl">きょうは あと <b id="careCount">3</b>かい おせわできるよ</p>
+      <div id="careMenu" class="caremenu">
+        <button class="carecard" id="careFood">
+          <span class="ci">🍽</span><b>ごはんを あげる</b>
+          <small>すきな エサを あてると だいせいこう<br>もっているエサ：<b id="careFoodNum">0</b>こ</small>
+        </button>
+        <button class="carecard" id="careBrush">
+          <span class="ci">🧽</span><b>ブラッシング</b>
+          <small>よごれを タップして きれいに しよう</small>
+        </button>
+        <button class="carecard" id="careWalk">
+          <span class="ci">🥾</span><b>さんぽ</b>
+          <small>ちょうどいい ところで とめよう</small>
+        </button>
+      </div>
+      <div id="careStage" class="hide"></div>
     </div>
   </section>
 
-  <!-- レース -->
+  <!-- ============ じはんき ============ -->
+  <section class="screen" id="shop">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="money">💰 <b id="shopMoney">0</b>えん</div></div>
+    <div class="card">
+      <p class="ttl">🥤 エサの じはんき</p>
+      <p class="note center">エサを かって、キッズファームで あげよう。</p>
+      <div id="shopList" class="shoplist"></div>
+    </div>
+  </section>
+
+  <!-- ============ ガチャ ============ -->
+  <section class="screen" id="gacha">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="money">💰 <b id="gachaMoney">0</b>えん</div></div>
+    <div class="card center">
+      <p class="ttl">🎁 ぼくじょう ガチャ</p>
+      <div class="gachabox">🎁</div>
+      <p class="note">エサ・どうぐ・わざ・おかねが でるよ</p>
+      <button class="btn big purple" id="gachaBtn"><b id="gachaPrice">300</b>えんで まわす</button>
+      <div id="gachaResult"></div>
+    </div>
+  </section>
+
+  <!-- ============ もちもの ============ -->
+  <section class="screen" id="bag">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="sign small">🎒 もちもの</div></div>
+    <div class="card">
+      <p class="ttl">レースで つかう わざ（1つ えらぶ）</p>
+      <div id="bagSkills" class="picklist"></div>
+    </div>
+    <div class="card">
+      <p class="ttl">どうぐ（つかうと なくなる）</p>
+      <button class="pickrow" id="bagItemNone">
+        <span class="pi">🚫</span><span class="pinfo"><b>つかわない</b><small>どうぐ なしで レースに でる</small></span>
+        <span class="pmark">えらぶ</span>
+      </button>
+      <div id="bagItems" class="picklist"></div>
+    </div>
+  </section>
+
+  <!-- ============ レースの じゅんび ============ -->
+  <section class="screen" id="ready">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="sign small">🏁 レース</div></div>
+    <div class="card center">
+      <p class="ttl">きょうの レース</p>
+      <div class="readysheep" id="readySheep"></div>
+      <p class="readyname"><b id="readyName">-</b></p>
+      <div class="ministats">
+        <span>⚡<b id="readySpeed">0</b></span>
+        <span>💪<b id="readyStam">0</b></span>
+        <span>💖<b id="readyLove">0</b></span>
+      </div>
+      <div class="equip" id="readySkill"></div>
+      <div class="equip" id="readyItem"></div>
+      <p class="note">コースを <b id="readyLaps">2</b>しゅう。レースは 見まもるのが メイン。<br>
+        わざボタンは <b>1レースに 1かい</b> だけ つかえるよ。</p>
+      <button class="btn big pink" id="readyGo">スタート！</button>
+      <button class="btn small blue" id="readyBag">わざ・どうぐを かえる</button>
+    </div>
+  </section>
+
+  <!-- ============ レース ============ -->
   <section class="screen" id="race">
-    <div class="hud">
-      <span class="lbl">ゴールまで</span>
-      <span class="meter"><i id="meterFill"></i></span>
-      <span class="lbl" id="distTxt">100m</span>
+    <div class="racetop">
+      <span class="lap" id="lapTxt">1 / 2 しゅう</span>
+      <i class="racebar"><b id="raceBar"></b></i>
     </div>
-    <div class="track" id="track"></div>
-    <div class="zones" id="zones"></div>
-    <div id="count"><span id="countTxt">3</span></div>
+    <div class="callout" id="callout"></div>
+    <div class="trackwrap">
+      <svg id="trackSvg" viewBox="0 0 340 520" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="standings" id="standings"></div>
+    <button class="skillbtn" id="skillBtn"></button>
+    <div id="raceCount"><span id="raceCountTxt">3</span></div>
   </section>
 
-  <!-- けっか -->
+  <!-- ============ けっか ============ -->
   <section class="screen" id="result">
-    <div style="height:calc(52px + env(safe-area-inset-top))"></div>
+    <div class="pad"></div>
     <div class="bigmsg" id="resultMsg">ゴール！</div>
-    <div class="card"><div id="rankList"></div></div>
-    <div class="row">
-      <button class="btn green" id="btnAgain">もういちど</button>
-      <button class="btn small blue" id="btnTitle">さいしょから</button>
+    <div class="card">
+      <div id="resultList"></div>
+      <p class="prize" id="resultPrize"></p>
+      <p class="note center">もっている おかね：💰 <b id="resultMoney">0</b>えん</p>
     </div>
-    <div class="stat" id="resultStat"></div>
+    <button class="btn big green" id="resultBack">ぼくじょうへ もどる</button>
   </section>
 </div>
 
-<script>
-"use strict";
-const $ = (s, r=document) => r.querySelector(s);
-
-/* ===================== データ ===================== */
-const SHEEP = [
-  { id:"moko",  name:"もこもこ", c:"#ff6b9d", light:"#ffeef4" },
-  { id:"fuwa",  name:"ふわり",   c:"#3fa3f5", light:"#e7f4ff" },
-  { id:"kuru",  name:"くるりん", c:"#ffb02e", light:"#fff3dd" },
-  { id:"shiro", name:"しろっぷ", c:"#4ec26a", light:"#e6f8ea" },
-  { id:"ponta", name:"ぽんた",   c:"#a97cff", light:"#f1eaff" },
-  { id:"meko",  name:"めーこ",   c:"#ff7a4d", light:"#ffece4" },
-];
-
-const DIFF = {
-  easy:   { label:"やさしい",   cpu:5.3, spread:0.34, help:true  },
-  normal: { label:"ふつう",     cpu:6.1, spread:0.44, help:false },
-  hard:   { label:"むずかしい", cpu:6.5, spread:0.48, help:false },
-};
-
-const DISTANCE = 100;      // ゴールまでの距離(m)
-// 連打の速さ(rate)は「1秒あたり何回タップしたか」に収束する。
-// そこから速さを v = PLAYER_MIN + PLAYER_SPAN * rate/(rate+R50) で求めるので、
-// 連打が速いほど速くなるが、だんだん伸びにくくなる（差がつきすぎない）。
-const PLAYER_MIN = 3.7;    // ぜんぜん押さないときの速さ
-const PLAYER_SPAN = 4.8;   // 連打でどれだけ速くなれるか
-const R50 = 3.0;           // のびが半分になる連打速度
-const TAU = 0.6;           // 連打の速さをならす時間(秒)
-const RATE_MAX = 14;
-
-const EVENTS = [
-  { t:"ダッシュ！",   v: 1.95, d:2.0, good:true },
-  { t:"げんきモリモリ", v: 1.4,  d:2.6, good:true },
-  { t:"おいかぜ",     v: 1.6,  d:2.2, good:true },
-  { t:"くさを たべた", v:-1.6,  d:1.6, good:false },
-  { t:"ころんだ！",   v:-2.4,  d:1.2, good:false },
-  { t:"ちょっと きゅうけい", v:-1.25, d:1.8, good:false },
-];
-
-/* ===================== ひつじの絵 ===================== */
-function sheepSVG(color, opts={}){
-  const run = opts.run ? "leg" : "";
-  return `<svg viewBox="0 0 100 76" xmlns="http://www.w3.org/2000/svg">
-    <g class="${opts.run ? "bob" : ""}">
-      <ellipse cx="46" cy="70" rx="30" ry="4" fill="rgba(0,0,0,.12)"/>
-      <g fill="#4a4a5e">
-        <rect class="${run} lg1" x="30" y="48" width="7" height="19" rx="3.5"/>
-        <rect class="${run} lg2" x="41" y="48" width="7" height="19" rx="3.5"/>
-        <rect class="${run} lg3" x="52" y="48" width="7" height="19" rx="3.5"/>
-        <rect class="${run} lg4" x="61" y="48" width="7" height="19" rx="3.5"/>
-      </g>
-      <circle cx="20" cy="36" r="9" fill="#fff" stroke="#e2e6ee" stroke-width="2"/>
-      <g fill="#fff" stroke="#e2e6ee" stroke-width="2">
-        <circle cx="34" cy="30" r="14"/><circle cx="50" cy="25" r="16"/>
-        <circle cx="66" cy="31" r="14"/><circle cx="36" cy="44" r="14"/>
-        <circle cx="54" cy="45" r="15"/><circle cx="66" cy="42" r="12"/>
-      </g>
-      <circle cx="34" cy="30" r="13" fill="#fff"/><circle cx="50" cy="25" r="15" fill="#fff"/>
-      <circle cx="66" cy="31" r="13" fill="#fff"/><circle cx="36" cy="44" r="13" fill="#fff"/>
-      <circle cx="54" cy="45" r="14" fill="#fff"/>
-      <path d="M70 38 q10 2 12 8 q-8 4 -14 1 z" fill="${color}"/>
-      <ellipse cx="70" cy="24" rx="7" ry="4.5" fill="#4a4a5e" transform="rotate(-24 70 24)"/>
-      <ellipse cx="84" cy="32" rx="11" ry="12.5" fill="#5a5a6e"/>
-      <ellipse cx="86" cy="38" rx="6" ry="4.5" fill="#6e6e82"/>
-      <circle cx="88" cy="28" r="3.2" fill="#fff"/><circle cx="89" cy="28.5" r="1.7" fill="#2b2b3a"/>
-      <circle cx="82" cy="27" r="2.6" fill="#fff"/><circle cx="82.6" cy="27.5" r="1.4" fill="#2b2b3a"/>
-      <path d="M60 15 q6 -8 14 -4" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round"/>
-    </g>
-  </svg>`;
-}
-
-/* ===================== おと ===================== */
-let actx = null, muted = false;
-function sound(freq, dur=0.08, type="square", vol=0.16){
-  if (muted) return;
-  try{
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-    if (actx.state === "suspended") actx.resume();
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
-    o.connect(g); g.connect(actx.destination);
-    o.start(); o.stop(actx.currentTime + dur);
-  }catch(e){}
-}
-function fanfare(){
-  [523,659,784,1047].forEach((f,i)=> setTimeout(()=> sound(f,0.22,"triangle",0.2), i*130));
-}
-
-/* ===================== 状態 ===================== */
-const state = {
-  mode: 1,                 // 1人 or 2人
-  picks: [SHEEP[0].id, SHEEP[1].id],
-  pickIndex: 0,            // 2人モードでいま選んでいるプレイヤー
-  diff: "normal",
-  racers: [],
-  running: false,
-  raf: 0,
-  last: 0,
-  elapsed: 0,
-  nextEvent: 2.2,
-  finished: 0,
-};
-
-const save = {
-  get(){ try{ return JSON.parse(localStorage.getItem("hitsujiRace")||"{}"); }catch(e){ return {}; } },
-  set(o){ try{ localStorage.setItem("hitsujiRace", JSON.stringify(o)); }catch(e){} },
-};
-
-/* ===================== 画面きりかえ ===================== */
-function show(id){
-  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
-}
-
-/* ===================== タイトル ===================== */
-function initTitle(){
-  $("#titleSheep").innerHTML =
-    `<div style="width:150px;margin:0 auto">${sheepSVG(SHEEP[0].c,{run:true})}</div>`;
-  $("#rotateSheep").innerHTML = sheepSVG("#fff");
-  const d = save.get();
-  const win = d.wins || 0, play = d.plays || 0;
-  $("#titleStat").textContent = play ? `これまで ${play}かい あそんで ${win}かい 1いだよ！` : "";
-}
-
-/* ===================== ひつじ選び ===================== */
-function buildSelect(){
-  $("#selTtl").textContent = state.mode === 1
-    ? "じぶんの ひつじを えらぼう"
-    : `${state.pickIndex === 0 ? "1Pさん" : "2Pさん"} の ひつじを えらぼう`;
-  $("#diffCard").querySelector(".ttl").textContent =
-    state.mode === 1 ? "つよさを えらぼう" : "ライバルの つよさ";
-
-  const grid = $("#sheepGrid");
-  grid.innerHTML = "";
-  SHEEP.forEach(s => {
-    const taken = state.mode === 2 && state.picks[1 - state.pickIndex] === s.id;
-    const el = document.createElement("div");
-    el.className = "pick" + (state.picks[state.pickIndex] === s.id ? " sel" : "");
-    el.style.setProperty("--pick", s.c);
-    el.style.setProperty("--picklight", s.light);
-    el.style.opacity = taken ? ".35" : "1";
-    el.innerHTML = sheepSVG(s.c) + `<span class="nm" style="color:${s.c}">${s.name}</span>`;
-    el.onclick = () => {
-      if (taken) return;
-      state.picks[state.pickIndex] = s.id;
-      sound(700, 0.06);
-      buildSelect();
-    };
-    grid.appendChild(el);
-  });
-
-  const chips = $("#diffChips");
-  chips.innerHTML = "";
-  Object.entries(DIFF).forEach(([k, v]) => {
-    const c = document.createElement("div");
-    c.className = "chip" + (state.diff === k ? " sel" : "");
-    c.textContent = v.label;
-    c.onclick = () => { state.diff = k; sound(600, 0.06); buildSelect(); };
-    chips.appendChild(c);
-  });
-
-  $("#btnGo").textContent =
-    (state.mode === 2 && state.pickIndex === 0) ? "つぎへ" : "スタート！";
-}
-
-/* ===================== レースの準備 ===================== */
-function buildRace(){
-  const cfg = DIFF[state.diff];
-  const players = state.mode === 1 ? [state.picks[0]] : [state.picks[0], state.picks[1]];
-  const others = SHEEP.filter(s => !players.includes(s.id));
-  // シャッフルして必要数だけ CPU にする（ぜんぶで5とう）
-  for (let i = others.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [others[i], others[j]] = [others[j], others[i]];
-  }
-  const cpus = others.slice(0, 5 - players.length);
-
-  state.racers = [];
-  players.forEach((id, i) => {
-    state.racers.push(makeRacer(SHEEP.find(s => s.id === id), true, i, cfg));
-  });
-  cpus.forEach(s => state.racers.push(makeRacer(s, false, -1, cfg)));
-
-  // レーンをシャッフルして並べる
-  for (let i = state.racers.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [state.racers[i], state.racers[j]] = [state.racers[j], state.racers[i]];
-  }
-  state.racers.forEach((r, i) => r.lane = i);
-
-  renderTrack();
-  renderZones();
-}
-
-function makeRacer(sheep, isPlayer, pIndex, cfg){
-  return {
-    sheep, isPlayer, pIndex,
-    x: 0, rate: 0, evBoost: 0, evTime: 0,
-    phase: Math.random() * 6.28,
-    freq: 0.7 + Math.random() * 0.8,
-    person: (Math.random() * 2 - 1) * cfg.spread,   // その日の調子
-    lane: 0, finished: false, time: 0, rank: 0,
-    el: null, dustT: 0, lastV: PLAYER_MIN,
-  };
-}
-
-function renderTrack(){
-  const track = $("#track");
-  track.innerHTML = "";
-  state.racers.forEach(r => {
-    const lane = document.createElement("div");
-    lane.className = "lane";
-    lane.innerHTML = `<div class="goal"></div><div class="rail"></div>`;
-    const rail = lane.querySelector(".rail");
-    const run = document.createElement("div");
-    run.className = "runner paused" + (r.isPlayer ? " me" : "") + (r.pIndex === 1 ? " p2" : "");
-    run.style.setProperty("--c", r.sheep.c);
-    const tag = r.isPlayer
-      ? (state.mode === 2 ? (r.pIndex === 0 ? "1P" : "2P") : "きみ")
-      : r.sheep.name;
-    run.innerHTML =
-      sheepSVG(r.sheep.c, { run:true }) +
-      `<div class="badge">-</div><div class="nametag">${tag}</div>`;
-    rail.appendChild(run);
-    r.el = run;
-    r.badge = run.querySelector(".badge");
-    r.lane_el = lane;
-    track.appendChild(lane);
-  });
-}
-
-// あいている高さにあわせて レーンと ひつじの大きさを決める
-function fitLanes(){
-  const track = $("#track");
-  if (!track.clientHeight) return;
-  const gaps = 6 * 4 + 8;                       // レーンのすきま＋うえしたの余白
-  // ひつじの上に なまえのふだを出す ぶんの すきまを のこす
-  const h = Math.max(62, Math.min(104, Math.floor((track.clientHeight - gaps) / 5)));
-  const sw = Math.max(58, Math.min(100, Math.round(h * 0.88)));
-  const root = document.documentElement.style;
-  root.setProperty("--lane-h", h + "px");
-  root.setProperty("--sw", sw + "px");
-}
-
-function renderZones(){
-  const z = $("#zones");
-  z.innerHTML = "";
-  const players = state.racers.filter(r => r.isPlayer).sort((a,b) => a.pIndex - b.pIndex);
-  players.forEach(p => {
-    const b = document.createElement("button");
-    b.className = "zone" + (p.pIndex === 1 ? " p2" : "");
-    b.innerHTML = `<span>れんだ！</span><span class="who">${
-      state.mode === 2 ? (p.pIndex === 0 ? "1P " : "2P ") + p.sheep.name : p.sheep.name
-    }</span>`;
-    const hit = (e) => {
-      e.preventDefault();
-      if (!state.running) return;
-      p.rate = Math.min(RATE_MAX, p.rate + 1 / TAU);
-      b.classList.add("hit");
-      setTimeout(() => b.classList.remove("hit"), 60);
-      sound(320 + Math.random() * 120, 0.035, "square", 0.09);
-    };
-    b.addEventListener("pointerdown", hit);
-    b.addEventListener("contextmenu", e => e.preventDefault());
-    z.appendChild(b);
-  });
-}
-
-/* ===================== カウントダウン ===================== */
-function countdown(done){
-  const box = $("#count"), txt = $("#countTxt");
-  let n = 3;
-  box.classList.add("on");
-  const step = () => {
-    if (n > 0){
-      txt.textContent = n;
-      txt.style.animation = "none"; void txt.offsetWidth; txt.style.animation = "";
-      sound(520, 0.14, "triangle", 0.18);
-      n--;
-      setTimeout(step, 800);
-    } else {
-      txt.textContent = "スタート！";
-      txt.style.fontSize = "clamp(40px,14vw,80px)";
-      txt.style.animation = "none"; void txt.offsetWidth; txt.style.animation = "";
-      sound(900, 0.3, "triangle", 0.22);
-      setTimeout(() => {
-        box.classList.remove("on");
-        txt.style.fontSize = "";
-        done();
-      }, 600);
-    }
-  };
-  step();
-}
-
-/* ===================== レース本体 ===================== */
-function startRace(){
-  buildRace();
-  show("race");
-  fitLanes();
-  state.running = false;
-  state.elapsed = 0;
-  state.nextEvent = 1.8;
-  state.finished = 0;
-  update(0);
-  countdown(() => {
-    state.running = true;
-    state.racers.forEach(r => r.el.classList.remove("paused"));
-    state.last = performance.now();
-    schedule();
-  });
-}
-
-// ふつうは requestAnimationFrame で動かすが、それが止まってしまう環境でも
-// レースが固まらないように タイマーでも保険をかけておく
-function schedule(){
-  cancelAnimationFrame(state.raf);
-  clearTimeout(state.timer);
-  state.raf = requestAnimationFrame(loop);
-  state.timer = setTimeout(() => loop(performance.now()), 200);
-}
-
-function loop(ts){
-  cancelAnimationFrame(state.raf);
-  clearTimeout(state.timer);
-  let dt = (ts - state.last) / 1000;
-  state.last = ts;
-  if (dt > 0.05) dt = 0.05;          // タブ切り替えなどで飛ばないように
-  if (dt < 0) dt = 0;
-  state.elapsed += dt;
-  update(dt);
-  if (state.finished < state.racers.length){
-    schedule();
-  } else {
-    state.running = false;
-    setTimeout(showResult, 700);
-  }
-}
-
-function update(dt){
-  const cfg = DIFF[state.diff];
-  const leadX = Math.max(...state.racers.map(r => r.x));
-
-  state.racers.forEach(r => {
-    if (r.finished){
-      r.x = Math.min(DISTANCE, r.x);
-    } else if (dt > 0){
-      let v;
-      if (r.isPlayer){
-        r.rate = Math.max(0, r.rate - r.rate * dt / TAU);
-        v = PLAYER_MIN + PLAYER_SPAN * r.rate / (r.rate + R50);
-        // やさしいモードだけ、はなされすぎたら すこし手つだう
-        if (cfg.help && leadX - r.x > 14) v += 0.8;
-      } else {
-        const wob = Math.sin(state.elapsed * r.freq + r.phase) * 0.45;
-        v = cfg.cpu + r.person + wob;
-      }
-      if (r.evTime > 0){
-        r.evTime -= dt;
-        v += r.evBoost;
-        if (r.evTime <= 0) r.evBoost = 0;
-      }
-      v = Math.max(1.2, v);
-      r.lastV = v;
-      r.x += v * dt;
-
-      // ほこり
-      r.dustT -= dt;
-      if (r.dustT <= 0 && v > 6.0){
-        r.dustT = 0.14;
-        spawnDust(r);
-      }
-
-      if (r.x >= DISTANCE){
-        r.x = DISTANCE;
-        r.finished = true;
-        r.time = state.elapsed;
-        r.rank = ++state.finished;
-        r.el.classList.add("paused");
-        sound(r.isPlayer ? 880 : 440, 0.12, "triangle", 0.14);
-      }
-    }
-    // びょうが
-    const p = Math.min(1, r.x / DISTANCE);
-    r.el.style.left = (p * 100) + "%";
-    // 速いほど 足の動きも速くする
-    const spd = r.finished ? 1 : Math.max(0.13, 0.42 - (r.lastV - PLAYER_MIN) * 0.054);
-    r.el.querySelector(".bob").style.animationDuration = spd + "s";
-    r.el.querySelectorAll(".leg").forEach(l => l.style.animationDuration = (spd * 0.85) + "s");
-  });
-
-  // じゅんい
-  const order = [...state.racers].sort((a, b) => (b.x - a.x));
-  order.forEach((r, i) => { r.badge.textContent = r.finished ? r.rank : (i + 1); });
-
-  // イベント
-  if (state.running){
-    state.nextEvent -= dt;
-    if (state.nextEvent <= 0){
-      state.nextEvent = 1.6 + Math.random() * 1.8;
-      fireEvent();
-    }
-  }
-
-  // HUD（プレイヤーのすすみ）
-  const me = state.racers.find(r => r.isPlayer);
-  const pp = Math.min(1, me.x / DISTANCE);
-  $("#meterFill").style.width = (pp * 100) + "%";
-  $("#distTxt").textContent = Math.max(0, Math.round(DISTANCE - me.x)) + "m";
-}
-
-function fireEvent(){
-  const cand = state.racers.filter(r => !r.finished && r.evTime <= 0);
-  if (!cand.length) return;
-  const r = cand[Math.floor(Math.random() * cand.length)];
-  const e = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-  r.evBoost = e.v; r.evTime = e.d;
-  const pop = document.createElement("div");
-  pop.className = "popup " + (e.good ? "good" : "bad");
-  pop.textContent = e.t;
-  pop.style.left = r.el.style.left;
-  pop.style.top = "6px";
-  r.lane_el.querySelector(".rail").appendChild(pop);
-  setTimeout(() => pop.remove(), 1200);
-  if (r.isPlayer) sound(e.good ? 990 : 200, 0.16, e.good ? "triangle" : "sawtooth", 0.14);
-}
-
-function spawnDust(r){
-  const d = document.createElement("div");
-  d.className = "dust";
-  d.style.left = r.el.style.left;
-  r.lane_el.querySelector(".rail").appendChild(d);
-  setTimeout(() => d.remove(), 520);
-}
-
-/* ===================== けっか ===================== */
-function showResult(){
-  const order = [...state.racers].sort((a, b) => a.rank - b.rank);
-  const medals = ["🥇", "🥈", "🥉", "4", "5"];
-  $("#rankList").innerHTML = order.map(r => `
-    <div class="rank ${r.isPlayer ? "me" : ""}">
-      <span class="no">${medals[r.rank - 1]}</span>
-      ${sheepSVG(r.sheep.c)}
-      <span class="nm2" style="color:${r.sheep.c}">${r.sheep.name}${
-        r.isPlayer ? (state.mode === 2 ? `（${r.pIndex === 0 ? "1P" : "2P"}）` : "（きみ）") : ""
-      }</span>
-      <span class="tm">${r.time.toFixed(2)}びょう</span>
-    </div>`).join("");
-
-  const players = state.racers.filter(r => r.isPlayer);
-  let msg;
-  if (state.mode === 2){
-    const w = players.slice().sort((a, b) => a.rank - b.rank)[0];
-    const who = w.pIndex === 0 ? "1P" : "2P";
-    msg = w.rank === 1
-      ? `${who}の かち！ 🎉`
-      : `${who}の かち！ でも ${order[0].sheep.name}が 1いだよ`;
-  } else {
-    const me = players[0];
-    msg = me.rank === 1 ? "1い おめでとう！ 🎉"
-        : me.rank === 2 ? "おしい！ 2い だったよ"
-        : me.rank === 3 ? "3い！ つぎは かてるよ"
-        : `${me.rank}い… もういちど やってみよう！`;
-  }
-  $("#resultMsg").textContent = msg;
-
-  const d = save.get();
-  d.plays = (d.plays || 0) + 1;
-  const me = players[0];
-  if (state.mode === 1 && me.rank === 1){
-    d.wins = (d.wins || 0) + 1;
-    if (!d.best || me.time < d.best) d.best = me.time;
-  }
-  save.set(d);
-  $("#resultStat").textContent = d.best ? `いちばん はやい きろく：${d.best.toFixed(2)}びょう` : "";
-
-  const win = (state.mode === 2) || me.rank === 1;
-  if (win){ fanfare(); confetti(); } else { sound(300, 0.25, "triangle", 0.14); }
-  show("result");
-}
-
-function confetti(){
-  const colors = ["#ff6b9d", "#3fa3f5", "#ffb02e", "#4ec26a", "#a97cff", "#ff7a4d"];
-  for (let i = 0; i < 60; i++){
-    const c = document.createElement("div");
-    c.className = "conf";
-    c.style.left = Math.random() * 100 + "%";
-    c.style.background = colors[i % colors.length];
-    c.style.animationDuration = (1.6 + Math.random() * 1.6) + "s";
-    c.style.animationDelay = (Math.random() * 0.5) + "s";
-    $("#app").appendChild(c);
-    setTimeout(() => c.remove(), 3600);
-  }
-}
-
-/* ===================== ボタン ===================== */
-$("#btn1p").onclick = () => { state.mode = 1; state.pickIndex = 0; sound(660,0.1,"triangle"); buildSelect(); show("select"); };
-$("#btn2p").onclick = () => {
-  state.mode = 2; state.pickIndex = 0;
-  if (state.picks[0] === state.picks[1]) state.picks[1] = SHEEP.find(s => s.id !== state.picks[0]).id;
-  sound(660,0.1,"triangle"); buildSelect(); show("select");
-};
-$("#btnGo").onclick = () => {
-  sound(880, 0.12, "triangle");
-  if (state.mode === 2 && state.pickIndex === 0){ state.pickIndex = 1; buildSelect(); return; }
-  startRace();
-};
-$("#btnBack").onclick = () => {
-  sound(400, 0.08);
-  if (state.mode === 2 && state.pickIndex === 1){ state.pickIndex = 0; buildSelect(); return; }
-  initTitle(); show("title");
-};
-$("#btnAgain").onclick = () => { sound(880, 0.12, "triangle"); startRace(); };
-$("#btnTitle").onclick = () => { sound(400, 0.08); initTitle(); show("title"); };
-$("#muteBtn").onclick = () => {
-  muted = !muted;
-  $("#muteBtn").textContent = muted ? "🔇" : "🔊";
-  if (!muted) sound(700, 0.08);
-};
-
-window.addEventListener("resize", () => {
-  if ($("#race").classList.contains("on")) fitLanes();
-});
-document.addEventListener("gesturestart", e => e.preventDefault());
-
-// いちど ひらいておけば、つぎからは ネットにつながっていなくても あそべる
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
-}
-
-initTitle();
-</script>
+<script type="module" src="./js/main.js"></script>
 </body>
 </html>

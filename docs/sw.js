@@ -1,13 +1,21 @@
-// ひつじレースを オフラインでも あそべるようにする
+// まかいの ひつじレースを オフラインでも あそべるようにする
 // ファイルを更新したら CACHE の数字を 1つ ふやす
-const CACHE = "hitsuji-race-v1";
+const CACHE = "makaino-sheep-v2";
 const FILES = [
   "./",
   "./index.html",
+  "./style.css",
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
+  "./js/main.js",
+  "./js/data.js",
+  "./js/save.js",
+  "./js/sheep.js",
+  "./js/ui.js",
+  "./js/farm.js",
+  "./js/race.js",
 ];
 
 self.addEventListener("install", (e) => {
