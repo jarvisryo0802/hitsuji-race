@@ -2,9 +2,12 @@
 import { MY_COLORS, NAME_IDEAS, ALLOWANCE } from "./data.js";
 import * as S from "./save.js";
 import { sheepSVG } from "./sheep.js";
-import { $, $$, show, tap, coin, toast, dialog, muted, setMuted, yen } from "./ui.js";
+import { $, $$, show, current, tap, coin, toast, dialog, muted, setMuted, yen } from "./ui.js";
 import * as F from "./farm.js";
 import * as R from "./race.js";
+
+// あたらしい バージョンに いれかえる ための めじるし
+let reloading = false, pendingReload = false;
 
 /* ---------- はじめての とうろく ---------- */
 function renderBoot(){
@@ -78,7 +81,12 @@ function wire(){
   // レース
   $("#readyGo").onclick   = () => { tap(); R.startRace(); };
   $("#readyBag").onclick  = () => { tap(); bagFrom = "ready"; show("bag"); F.renderBag(); };
-  $("#resultBack").onclick= () => { tap(); show("farm"); F.renderFarm(); };
+  $("#resultBack").onclick= () => {
+    tap();
+    // レース中に あたらしい バージョンが きていたら ここで いれかえる
+    if (pendingReload && !reloading){ reloading = true; location.reload(); return; }
+    show("farm"); F.renderFarm();
+  };
 
   // おと
   const mb = $("#muteBtn");
@@ -118,5 +126,22 @@ else startDay();
 
 // いちど ひらいておけば、つぎからは ネットに つながっていなくても あそべる
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  // すでに ふるい ばーじょんが うごいていたか（はじめての とうろくと 見わけるため）
+  const had = !!navigator.serviceWorker.controller;
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!had || reloading) return;
+    // レースの とちゅうで きりかわると こまるので、おわってから いれかえる
+    if (current() === "race"){ pendingReload = true; return; }
+    reloading = true;
+    location.reload();
+  });
+
+  window.addEventListener("load", () => {
+    // updateViaCache:"none" にしないと、ブラウザが ふるい sw.js を つかいまわして
+    // あたらしい バージョンに きりかわらないことがある
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" })
+      .then(reg => reg.update())
+      .catch(() => {});
+  });
 }
