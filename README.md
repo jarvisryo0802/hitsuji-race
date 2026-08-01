@@ -74,6 +74,7 @@ docs/
   js/farm.js            ぼくじょう・おせわ・じはんき・ガチャ
   js/race.js            レース
   sw.js                 オフラインで遊ぶための Service Worker
+  precache.json         ためこむファイル一覧とバージョン（更新時はここ）
   manifest.webmanifest  ホーム画面に追加したときの設定
 ```
 
@@ -89,8 +90,9 @@ GitHub Pages は `main` ブランチの `/docs` フォルダから公開され�
 - `PRIZE` … 賞金
 - `FOODS` / `SKILLS` / `ITEMS` / `GACHA_POOL` … 中身とレア度
 
-**変更したら `docs/sw.js` の `CACHE = "makaino-sheep-v4"` の数字を1つ増やしてから push してください。**
+**変更したら `docs/precache.json` の `"cache": "makaino-sheep-v4"` の数字を1つ増やしてから push してください。**
 これを忘れると、ホーム画面に追加済みの端末で古いままになります。
+ファイルを増やしたときは、同じ `precache.json` の `files` にも追加してください。
 
 ## Mac で動かして確認する
 

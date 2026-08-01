@@ -1,31 +1,31 @@
 // まかいの ひつじレースを オフラインでも あそべるようにする
-// ファイルを更新したら CACHE の数字を 1つ ふやす
-const CACHE = "makaino-sheep-v4";
-const FILES = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./manifest.webmanifest",
-  "./icon-180.png",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./js/main.js",
-  "./js/data.js",
-  "./js/save.js",
-  "./js/sheep.js",
-  "./js/ui.js",
-  "./js/farm.js",
-  "./js/race.js",
-];
+//
+// ためこむ ファイルの いちらんと なまえは precache.json に まとめてある。
+// ゲームを 更新したら precache.json の "cache" の すうじを 1つ ふやすこと。
+// （わすれると、ホーム画面に ついかずみの 端末で ふるいままに なる）
+
+let cfg = null;
+const config = () =>
+  cfg || (cfg = fetch("./precache.json", { cache: "no-store" }).then((r) => r.json()));
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    config()
+      .then((c) => caches.open(c.cache).then((k) => k.addAll(c.files)))
+      .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting())   // 1つでも とれなくても ゲームは うごかす
+  );
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    config()
+      .then((c) =>
+        caches.keys().then((keys) =>
+          Promise.all(keys.filter((k) => k !== c.cache).map((k) => caches.delete(k)))
+        )
+      )
+      .catch(() => {})
       .then(() => self.clients.claim())
   );
 });
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (e) => {
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
+            config().then((c) => caches.open(c.cache).then((k) => k.put(e.request, copy)));
           }
           return res;
         })

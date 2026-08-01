@@ -147,5 +147,17 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
     navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" })
       .then(reg => reg.update())
       .catch(() => {});
+    setTimeout(primeCache, 2500);
   });
+}
+
+// ブラウザに よっては ServiceWorker の install が はしらず、
+// ファイルが ためこまれない ことがある。その ときは ページのほうから ためこむ。
+async function primeCache(){
+  try {
+    const c = await fetch("./precache.json", { cache: "no-store" }).then(r => r.json());
+    const box = await caches.open(c.cache);
+    if ((await box.keys()).length >= c.files.length) return;   // もう そろっている
+    await box.addAll(c.files);
+  } catch (e) {}
 }
