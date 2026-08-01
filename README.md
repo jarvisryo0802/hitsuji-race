@@ -89,7 +89,7 @@ GitHub Pages は `main` ブランチの `/docs` フォルダから公開され�
 - `PRIZE` … 賞金
 - `FOODS` / `SKILLS` / `ITEMS` / `GACHA_POOL` … 中身とレア度
 
-**変更したら `docs/sw.js` の `CACHE = "makaino-sheep-v3"` の数字を1つ増やしてから push してください。**
+**変更したら `docs/sw.js` の `CACHE = "makaino-sheep-v4"` の数字を1つ増やしてから push してください。**
 これを忘れると、ホーム画面に追加済みの端末で古いままになります。
 
 ## Mac で動かして確認する

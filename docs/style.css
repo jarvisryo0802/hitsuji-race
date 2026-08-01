@@ -199,8 +199,41 @@ html,body{
 .shoprow .sinfo small{ display:block; font-size:11.5px; color:var(--sub); font-weight:700 }
 
 /* ---- ガチャ ---- */
-.gachabox{ font-size:74px; animation:bob .9s infinite ease-in-out }
-.gacharesult{ margin-top:14px; background:#fff; border-radius:18px; padding:14px;
+.gachabox{ font-size:74px; animation:bob .9s infinite ease-in-out; display:inline-block }
+.gachabox.shake{ animation:gshake .16s infinite }
+.gachabox.drop{ animation:gdrop .5s ease-out }
+@keyframes gshake{ 0%{transform:rotate(-7deg) scale(1.04)} 50%{transform:rotate(7deg) scale(.97)} 100%{transform:rotate(-7deg) scale(1.04)} }
+@keyframes gdrop{ 0%{transform:scale(1.25)} 100%{transform:scale(1)} }
+
+.gachastage{ position:relative; min-height:10px }
+
+/* とびだす カプセル */
+.capsule{ width:78px; height:78px; margin:16px auto 0; border-radius:50%; position:relative;
+  background:linear-gradient(180deg,#ff8ab5 0 50%, #fff 50% 100%);
+  box-shadow:0 6px 14px rgba(0,0,0,.2), inset 0 -6px 10px rgba(0,0,0,.08);
+  animation:capout .55s cubic-bezier(.2,1.7,.4,1) both }
+.capsule.gold{ background:linear-gradient(180deg,#ffd24a 0 50%, #fff6d0 50% 100%);
+  box-shadow:0 6px 18px rgba(255,180,0,.6), inset 0 -6px 10px rgba(0,0,0,.08);
+  animation:capout .55s cubic-bezier(.2,1.7,.4,1) both, capglow .5s infinite alternate }
+.capsule span{ position:absolute; left:8%; top:12%; width:26%; height:18%; border-radius:50%;
+  background:rgba(255,255,255,.75) }
+.capsule.open{ animation:capopen .3s ease-in forwards }
+@keyframes capout{ 0%{ transform:translateY(-70px) scale(.4); opacity:0 }
+  70%{ transform:translateY(6px) scale(1.06); opacity:1 } 100%{ transform:none; opacity:1 } }
+@keyframes capglow{ from{ filter:brightness(1) } to{ filter:brightness(1.35) } }
+@keyframes capopen{ to{ transform:scale(2.1); opacity:0 } }
+
+/* レアのときの ひかり */
+.rays{ position:absolute; left:50%; top:150px; width:280px; height:280px; margin:-140px 0 0 -140px;
+  background:repeating-conic-gradient(rgba(255,214,94,.85) 0deg 9deg, rgba(255,214,94,0) 9deg 22deg);
+  border-radius:50%; animation:spin 7s linear infinite; pointer-events:none; z-index:0 }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+.rarebanner{ position:relative; z-index:2; display:inline-block; margin-top:8px;
+  background:linear-gradient(180deg,#ffd24a,#ff9f1a); color:#fff; font-size:19px; font-weight:900;
+  padding:5px 22px; border-radius:999px; box-shadow:0 4px 12px rgba(255,150,0,.5);
+  animation:pop .45s cubic-bezier(.2,1.8,.4,1) both }
+
+.gacharesult{ position:relative; z-index:2; margin-top:14px; background:#fff; border-radius:18px; padding:14px;
   animation:pop .45s cubic-bezier(.2,1.6,.4,1) both }
 .gacharesult.rare{ background:linear-gradient(135deg,#fff6d6,#ffe6f2); box-shadow:0 0 0 4px #ffd45e inset }
 .gicon{ font-size:46px } .gname{ font-size:18px; font-weight:900; margin-top:4px }
@@ -237,14 +270,20 @@ html,body{
 .callout span.strong{ background:#ff5f92 }
 .callout.pop span{ animation:pop .35s cubic-bezier(.2,1.6,.4,1) both }
 
-.trackwrap{ width:100%; max-width:520px; flex:1; min-height:0; display:flex; align-items:center }
+/* SVG は viewBox の そとまで はみだして えがき、はみだしぶんは ここで きる。
+   こうすると よこはばに すきまが できない */
+/* がめんの はしまで けしきを ひろげたいので、#race の よこよはくを うちけす */
+.trackwrap{ width:calc(100% + 20px); margin:0 -10px; flex:1; min-height:0;
+  display:flex; align-items:center; overflow:hidden }
 #trackSvg{ width:100%; height:100%; max-height:100%; display:block; overflow:visible }
 .runner .badgetxt{ font:900 12px "Hiragino Maru Gothic ProN",sans-serif; fill:#3c3a4e }
-.infieldtxt{ font-size:54px; opacity:.28; dominant-baseline:middle }
-.runner.boosting .body{ filter:drop-shadow(0 0 6px #ffd45e) }
-.runner.still .bob,.runner.still .leg{ animation-play-state:paused }
+.runner.boosting .body{ filter:drop-shadow(0 0 7px #ffd45e) }
 .runner .arrow{ animation:arrowbob .6s infinite ease-in-out }
 @keyframes arrowbob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+/* はしった あとの すなぼこり */
+.puff{ fill:#fff5e0; opacity:.7; transform-box:fill-box; transform-origin:center;
+  animation:puffout .5s ease-out forwards; pointer-events:none }
+@keyframes puffout{ from{ transform:scale(.5); opacity:.7 } to{ transform:scale(2.2); opacity:0 } }
 
 .standings{ width:100%; max-width:520px; display:flex; gap:5px; justify-content:center; flex-wrap:wrap; flex:none }
 .strow{ display:flex; align-items:center; gap:4px; background:rgba(255,255,255,.85);

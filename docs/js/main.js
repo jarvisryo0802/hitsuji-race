@@ -2,7 +2,8 @@
 import { MY_COLORS, NAME_IDEAS, ALLOWANCE } from "./data.js";
 import * as S from "./save.js";
 import { sheepSVG } from "./sheep.js";
-import { $, $$, show, current, tap, coin, toast, dialog, muted, setMuted, yen } from "./ui.js";
+import { $, $$, show, current, tap, coin, toast, dialog, muted, setMuted, yen,
+         startMusic } from "./ui.js";
 import * as F from "./farm.js";
 import * as R from "./race.js";
 
@@ -94,7 +95,10 @@ function wire(){
   mb.onclick = () => {
     setMuted(!muted);
     mb.textContent = muted ? "🔇" : "🔊";
-    if (!muted) tap();
+    if (!muted){
+      tap();
+      if (current() === "race") startMusic();   // レース中なら BGMを もどす
+    }
   };
 
   // よこむき ちゅうい

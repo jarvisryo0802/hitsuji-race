@@ -1,6 +1,6 @@
 // まかいの ひつじレースを オフラインでも あそべるようにする
 // ファイルを更新したら CACHE の数字を 1つ ふやす
-const CACHE = "makaino-sheep-v3";
+const CACHE = "makaino-sheep-v4";
 const FILES = [
   "./",
   "./index.html",

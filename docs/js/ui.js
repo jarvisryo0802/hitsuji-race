@@ -13,21 +13,93 @@ export const current = () => ($(".screen.on") || {}).id;
 // ---- おと ----
 let actx = null;
 export let muted = false;
-export function setMuted(v){ muted = v; try{ localStorage.setItem("makainoMute", v ? "1" : "0"); }catch(e){} }
 try { muted = localStorage.getItem("makainoMute") === "1"; } catch (e) {}
 
-export function sound(freq, dur = 0.08, type = "square", vol = 0.16){
-  if (muted) return;
+export function setMuted(v){
+  muted = v;
+  try { localStorage.setItem("makainoMute", v ? "1" : "0"); } catch (e) {}
+  if (v) stopMusic();
+}
+
+function ensureCtx(){
   try {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === "suspended") actx.resume();
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
-    o.connect(g); g.connect(actx.destination);
-    o.start(); o.stop(actx.currentTime + dur);
-  } catch (e) {}
+  } catch (e) { actx = null; }
+  return actx;
+}
+
+export function sound(freq, dur = 0.08, type = "square", vol = 0.16){
+  if (muted || !ensureCtx()) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime + dur);
+}
+
+/* ---- レースの BGM ----
+   おんぷを その場で ならしている（おんがくファイルは つかわない）。
+   8ぶおんぷ 32こで 1ループ、およそ 6びょう。 */
+const NOTE = { C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11 };
+const hz = (n) => {
+  const m = /^([A-G]#?)(\d)$/.exec(n);
+  return 440 * Math.pow(2, (NOTE[m[1]] + (+m[2] - 4) * 12 - 9) / 12);
+};
+const MELODY = [
+  "G4","G4","A4","B4",  "C5","C5","B4","A4",
+  "G4","E4","G4","A4",  "G4", "",   "",  "",
+  "E4","E4","F4","G4",  "A4","A4","G4","F4",
+  "E4","D4","E4","D4",  "C4", "",   "",  "",
+];
+const BASS = [
+  "C3","","","",  "C3","","","",
+  "G2","","","",  "G2","","","",
+  "F2","","","",  "F2","","","",
+  "G2","","","",  "C3","","","",
+];
+const BPM = 152;
+
+let mTimer = 0, mStep = 0, mNext = 0, mOn = false;
+
+export function startMusic(){
+  stopMusic();
+  if (muted || !ensureCtx()) return;
+  mOn = true; mStep = 0; mNext = actx.currentTime + 0.1;
+  mTimer = setInterval(tickMusic, 60);
+}
+export function stopMusic(){ mOn = false; clearInterval(mTimer); mTimer = 0; }
+
+function tickMusic(){
+  if (!mOn || !actx) return;
+  const step = 30 / BPM;                       // 8ぶおんぷ 1つぶんの びょうすう
+  while (mNext < actx.currentTime + 0.3){      // すこし さきまで よやくしておく
+    const i = mStep % MELODY.length;
+    voice(MELODY[i], mNext, step * 0.85, "square",   0.042);
+    voice(BASS[i],   mNext, step * 1.7,  "triangle", 0.065);
+    if (i % 2 === 0) beat(mNext);
+    mNext += step; mStep++;
+  }
+}
+
+function voice(name, t, dur, type, vol){
+  if (!name) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = hz(name);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + dur + 0.03);
+}
+function beat(t){
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = "triangle"; o.frequency.setValueAtTime(1500, t);
+  g.gain.setValueAtTime(0.028, t);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + 0.045);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + 0.06);
 }
 export const tap    = () => sound(660, 0.06, "triangle", 0.13);
 export const good   = () => [784, 988, 1319].forEach((f, i) => setTimeout(() => sound(f, 0.16, "triangle", 0.16), i * 90));

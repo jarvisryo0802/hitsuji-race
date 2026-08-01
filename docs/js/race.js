@@ -5,16 +5,21 @@ import {
 } from "./data.js";
 import * as S from "./save.js";
 import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
-import { $, show, sound, tap, good, bad, fanfare, confetti, toast, yen } from "./ui.js";
+import { $, show, sound, tap, good, bad, fanfare, confetti, toast, yen,
+         startMusic, stopMusic } from "./ui.js";
 
 /* ---------- コースの かたち ---------- */
-// たてに ながい だえん。スマホの たてがめんを いっぱいに つかう
-const CX = 170, CY = 260;          // コースの まんなか
+// よこに ながい だえん。ひつじは よこむきの えなので、よこに はしるほうが
+// はしって いるように 見える。カーブは ひだり(25%)と みぎ(75%)の はし。
+const CX = 170, CY = 268;          // コースの まんなか
 const LANE = [                     // そとがわ から うちがわ へ 5レーン
-  { rx:144, ry:220 }, { rx:133, ry:204 }, { rx:122, ry:188 },
-  { rx:111, ry:172 }, { rx:100, ry:156 },
+  { rx:132, ry:102 }, { rx:121, ry:93 }, { rx:110, ry:84 },
+  { rx:99,  ry:75 },  { rx:88,  ry:66 },
 ];
-const Y_TOP = CY - 220, Y_BOT = CY + 220;
+const Y_TOP = CY - 102, Y_BOT = CY + 102;
+const LEG_X = [33.5, 44.5, 55.5, 64.5];              // あしの つけね（え の ざひょう）
+const LEG_PHASE = [0, 0.35, Math.PI, Math.PI + 0.35]; // まえあし と うしろあし を こうごに
+const SVGNS = "http://www.w3.org/2000/svg";
 
 // したの まんなかから スタートして、ひだり → うえ → みぎ と まわる
 function ellipsePath(rx, ry, steps = 200){
@@ -108,9 +113,9 @@ export function startRace(){
   update(0);
   countdown(() => {
     st.running = true;
-    st.racers.forEach(r => r.g.classList.remove("still"));
     st.last = performance.now();
     schedule();
+    startMusic();
     callout(pick(CALLOUTS.start));
   });
 }
@@ -121,6 +126,34 @@ const pick  = (a) => a[Math.floor(Math.random() * a.length)];
 /* =========================================================
    コースを えがく
    ========================================================= */
+// ぼくじょうの けしき（コースの うしろがわ）
+// けしきは わざと viewBox の そとまで のばして、はしに すきまが できないようにする
+function scenery(){
+  let fence = "";
+  for (let x = -60; x < 400; x += 21){
+    fence += `<rect x="${x}" y="124" width="4.5" height="19" rx="2" fill="#f3ead6"/>`;
+  }
+  return `
+    <rect x="-60" y="126" width="460" height="420" fill="#a9e394"/>
+    <ellipse cx="40"  cy="162" rx="130" ry="48" fill="#8ad57a"/>
+    <ellipse cx="285" cy="157" rx="115" ry="42" fill="#7ecb6d"/>
+    <!-- なや -->
+    <polygon points="24,100 58,76 92,100" fill="#f7f7f7"/>
+    <rect x="31" y="98" width="54" height="30" fill="#e0625e"/>
+    <rect x="50" y="112" width="16" height="16" fill="#8b3a3a"/>
+    <rect x="94" y="92" width="16" height="36" rx="3" fill="#ece4d4"/>
+    <ellipse cx="102" cy="92" rx="8" ry="5.5" fill="#cfc5b2"/>
+    <!-- き -->
+    <rect x="248" y="106" width="6" height="22" fill="#a5764a"/>
+    <circle cx="251" cy="100" r="18" fill="#63b85a"/>
+    <rect x="292" y="112" width="5" height="16" fill="#a5764a"/>
+    <circle cx="294.5" cy="107" r="13" fill="#72c464"/>
+    <!-- さく -->
+    ${fence}
+    <rect x="-60" y="128" width="460" height="4" rx="2" fill="#fffaf0"/>
+    <rect x="-60" y="137" width="460" height="4" rx="2" fill="#fffaf0"/>`;
+}
+
 function buildTrack(){
   const lanes = LANE.map(l => `<path class="lanepath" d="${ellipsePath(l.rx, l.ry)}"/>`).join("");
   $("#trackSvg").innerHTML = `
@@ -131,24 +164,31 @@ function buildTrack(){
         <rect x="3.5" y="3.5" width="3.5" height="3.5" fill="#333"/>
       </pattern>
     </defs>
-    <ellipse cx="${CX}" cy="${CY}" rx="168" ry="248" fill="#8fce78"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="160" ry="240" fill="#d9b381"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="157" ry="237" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".7"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="84" ry="140" fill="#7bd06a"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="84" ry="140" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".7"/>
-    <rect x="${CX - 5}" y="408" width="10" height="80" fill="url(#goalpat)"/>
+    ${scenery()}
+    <ellipse cx="${CX}" cy="${CY}" rx="158" ry="126" fill="#8fce78"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="150" ry="118" fill="#d9b381"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="147" ry="115" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".65"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="#7bd06a"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".65"/>
+    <rect x="${CX - 5}" y="330" width="10" height="44" fill="url(#goalpat)"/>
     <g id="laneHolder" opacity="0">${lanes}</g>
+    <g id="dustHolder"></g>
     <g id="runnerHolder"></g>`;
 
   const paths = [...$("#laneHolder").querySelectorAll(".lanepath")];
   const holder = $("#runnerHolder");
+  st.dust = $("#dustHolder");
+  st.holder = holder;
+  st.order = "";
   st.racers.forEach((r, i) => {
     r.path = paths[i];
     r.len  = r.path.getTotalLength();
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("class", "runner still" + (r.isPlayer ? " me" : ""));
+    r.gait = Math.random() * 6.3;
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "runner" + (r.isPlayer ? " me" : ""));
+    // あしは CSS ではなく JS で うごかす（えがきなおしで アニメが とまるため）
     g.innerHTML = `
-      <g class="body">${sheepArt(r.color, { run:true })}</g>
+      <g class="body">${sheepArt(r.color)}</g>
       <g class="tagwrap">
         <circle class="badge" cx="6" cy="-4" r="11" fill="#fff" stroke="${r.color}" stroke-width="3.5"/>
         <text class="badgetxt" x="6" y="1" text-anchor="middle">-</text>
@@ -159,7 +199,20 @@ function buildTrack(){
     r.body = g.querySelector(".body");
     r.tag  = g.querySelector(".tagwrap");
     r.badgeTxt = g.querySelector(".badgetxt");
+    r.legs = [...g.querySelectorAll(".lg1,.lg2,.lg3,.lg4")];
+    r.puffT = 0;
   });
+}
+
+// はしった あとの すなぼこり
+function puff(x, y, s){
+  const c = document.createElementNS(SVGNS, "circle");
+  c.setAttribute("class", "puff");
+  c.setAttribute("cx", x.toFixed(1));
+  c.setAttribute("cy", y.toFixed(1));
+  c.setAttribute("r", (3 + s * 4).toFixed(1));
+  st.dust.appendChild(c);
+  setTimeout(() => c.remove(), 520);
 }
 
 /* =========================================================
@@ -315,20 +368,49 @@ function update(dt){
     // ---- えがく ----
     const lp = r.finished ? 0 : (r.p % 1);
     const pt = r.path.getPointAtLength(lp * r.len);
-    const nx = r.path.getPointAtLength(((lp + 0.01) % 1) * r.len);
-    const face = nx.x < pt.x ? -1 : 1;                         // すすむ むきで むきを かえる
+    const nx = r.path.getPointAtLength(((lp + 0.008) % 1) * r.len);
+    const dx = nx.x - pt.x;
+    // すすむ むきが よこに かわった ときだけ むきを かえる（カーブの はしで 1かいだけ）
+    if (Math.abs(dx) > 0.03) r.face = dx < 0 ? -1 : 1;
+    const face = r.face || 1;
     const depth = (pt.y - Y_TOP) / (Y_BOT - Y_TOP);            // したに いるほど おおきく
-    const s = 0.36 + 0.20 * depth;
+    const s = 0.44 + 0.24 * depth;
+
+    // あしを うごかす：はやいほど はやく かいてんする
+    const speedRate = st.unit ? r.v / st.unit : 1;
+    if (!r.finished) r.gait += dt * 26 * Math.max(0.4, speedRate);
+    for (let i = 0; i < r.legs.length; i++){
+      const a = r.finished ? 0 : Math.sin(r.gait + LEG_PHASE[i]) * 27;
+      r.legs[i].setAttribute("transform", `rotate(${a.toFixed(1)} ${LEG_X[i]} 48)`);
+    }
+    // からだを ぴょこぴょこ させて、まえに かたむける
+    const bob = r.finished ? 0 : Math.sin(r.gait * 2) * 2.2;
+    r.body.setAttribute("transform", `translate(0 ${bob.toFixed(2)}) rotate(-4 49 42)`);
+
     r.g.setAttribute("transform",
       `translate(${pt.x.toFixed(2)},${pt.y.toFixed(2)}) scale(${(face * s).toFixed(3)},${s.toFixed(3)}) translate(${-FOOT_X},${-FOOT_Y})`);
     // なまえふだは ひっくりかえらないように もどす
     r.tag.setAttribute("transform", `translate(${FOOT_X},${FOOT_Y - 34}) scale(${face},1)`);
     r.depth = pt.y;
+
+    // すなぼこり
+    if (!r.finished && dt > 0){
+      r.puffT -= dt;
+      if (r.puffT <= 0){
+        r.puffT = 0.13;
+        puff(pt.x - face * 9 * s, pt.y - 1, s);
+      }
+    }
   }
 
-  // まえに いる ひつじほど てまえに えがく
-  const holder = $("#runnerHolder");
-  if (holder) [...st.racers].sort((a, b) => a.depth - b.depth).forEach(r => holder.appendChild(r.g));
+  // まえに いる ひつじほど てまえに えがく。
+  // じゅんばんが かわった ときだけ ならべかえる（まいかい やると えがきなおしで ちらつく）
+  const byDepth = [...st.racers].sort((a, b) => a.depth - b.depth);
+  const sig = byDepth.map(r => r.lane).join("");
+  if (sig !== st.order){
+    st.order = sig;
+    byDepth.forEach(r => st.holder.appendChild(r.g));
+  }
 
   // じゅんい
   const order = [...st.racers].sort((a, b) => (b.p - a.p));
@@ -402,6 +484,7 @@ function callout(text, strong = false){
    けっか
    ========================================================= */
 function showResult(){
+  stopMusic();
   const d = S.data;
   const me = st.racers.find(r => r.isPlayer);
   const order = [...st.racers].sort((a, b) => a.rank - b.rank);
@@ -442,4 +525,5 @@ function showResult(){
 export function stopRace(){
   cancelAnimationFrame(st.raf); clearTimeout(st.timer);
   st.running = false;
+  stopMusic();
 }

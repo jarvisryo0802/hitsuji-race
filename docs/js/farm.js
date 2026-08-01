@@ -5,7 +5,7 @@ import {
 } from "./data.js";
 import * as S from "./save.js";
 import { sheepSVG, happySheep } from "./sheep.js";
-import { $, show, tap, good, bad, coin, toast, dialog, confetti, yen } from "./ui.js";
+import { $, show, tap, good, bad, coin, sound, toast, dialog, confetti, yen } from "./ui.js";
 
 /* =========================================================
    ぼくじょう（ホーム）
@@ -320,7 +320,10 @@ function drawOne(){
   return GACHA_POOL[0];
 }
 
+let pulling = false;
+
 export function pullGacha(){
+  if (pulling) return;
   if (!S.pay(GACHA_PRICE)) { bad(); toast("おかねが たりないよ"); return; }
   const g = drawOne();
 
@@ -342,15 +345,59 @@ export function pullGacha(){
     icon = "💰"; name = yen(g.amount); note = "おかねが ふえた！";
   }
 
-  $("#gachaResult").innerHTML = `
-    <div class="gacharesult ${g.rare ? "rare" : ""}">
-      <div class="gicon">${icon}</div>
-      <div class="gname">${name}</div>
-      <div class="gnote">${note}</div>
-    </div>`;
-  g.rare ? (good(), confetti(40)) : coin();
   S.addLog(`ガチャで ${name} を あてた`);
-  refreshGacha();
+  playGachaShow(g, icon, name, note);
+}
+
+/* ガチャの えんしゅつ
+   ①ハンドルが まわる ②カプセルが とびだす ③カプセルが われて けっか  */
+function playGachaShow(g, icon, name, note){
+  pulling = true;
+  const rare = !!g.rare;
+  const box = $("#gachaBox");
+  const stage = $("#gachaResult");
+  $("#gachaBtn").disabled = true;
+
+  box.classList.add("shake");
+  stage.innerHTML = "";
+
+  // ① ハンドルを まわす おと
+  let clicks = 0;
+  const clickTimer = setInterval(() => {
+    sound(240 + clicks * 30, 0.05, "square", 0.1);
+    if (++clicks >= 5) clearInterval(clickTimer);
+  }, 170);
+
+  // ② カプセルが とびだす（いろで レアさが わかる ＝ ドキドキする ところ）
+  setTimeout(() => {
+    box.classList.remove("shake");
+    box.classList.add("drop");
+    stage.innerHTML = `<div class="capsule ${rare ? "gold" : ""}"><span></span></div>`;
+    sound(660, 0.12, "triangle", 0.16);
+    if (rare) setTimeout(() => sound(880, 0.14, "triangle", 0.16), 160);
+  }, 950);
+
+  // ③ カプセルが われる
+  setTimeout(() => {
+    box.classList.remove("drop");
+    const cap = stage.querySelector(".capsule");
+    if (cap) cap.classList.add("open");
+    sound(1200, 0.1, "square", 0.16);
+  }, 1850);
+
+  // ④ けっかを だす
+  setTimeout(() => {
+    stage.innerHTML = `
+      ${rare ? `<div class="rays"></div><div class="rarebanner">レア！</div>` : ""}
+      <div class="gacharesult ${rare ? "rare" : ""}">
+        <div class="gicon">${icon}</div>
+        <div class="gname">${name}</div>
+        <div class="gnote">${note}</div>
+      </div>`;
+    rare ? (good(), confetti(60)) : coin();
+    pulling = false;
+    refreshGacha();
+  }, 2150);
 }
 
 /* =========================================================
