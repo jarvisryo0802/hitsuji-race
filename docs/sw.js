@@ -8,10 +8,19 @@ let cfg = null;
 const config = () =>
   cfg || (cfg = fetch("./precache.json", { cache: "no-store" }).then((r) => r.json()));
 
+// ブラウザの キャッシュに のこった ふるい ファイルを ためこむと、
+// あたらしい index.html と ふるい js が まざって がめんが まっしろに なる。
+// かならず ネットから とりなおす（cache:"reload"）。
+function fill(box, files){
+  return Promise.all(files.map((f) =>
+    fetch(f, { cache: "reload" }).then((res) => (res.ok ? box.put(f, res) : null)).catch(() => null)
+  ));
+}
+
 self.addEventListener("install", (e) => {
   e.waitUntil(
     config()
-      .then((c) => caches.open(c.cache).then((k) => k.addAll(c.files)))
+      .then((c) => caches.open(c.cache).then((k) => fill(k, c.files)))
       .then(() => self.skipWaiting())
       .catch(() => self.skipWaiting())   // 1つでも とれなくても ゲームは うごかす
   );

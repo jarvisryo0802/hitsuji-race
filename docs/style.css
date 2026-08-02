@@ -145,6 +145,76 @@ html,body{
   font-family:inherit; font-size:13px; font-weight:800; color:var(--sub); cursor:pointer }
 .chip.sel{ background:#ffe9f1; border-color:var(--pink); color:#d8447a }
 
+/* ---- ぼくじょうを あるく がめん ---- */
+#map{ padding:8px 10px 12px; gap:8px; justify-content:flex-start }
+.maphud{ width:100%; max-width:520px; display:flex; align-items:center; gap:5px; flex:none;
+  padding-right:56px; flex-wrap:nowrap }
+.maphud .money{ font-size:13px; padding:5px 10px }
+.hudpill{ font-size:11px; font-weight:900; color:#4a6b7a; background:rgba(255,255,255,.9);
+  padding:5px 9px; border-radius:999px; white-space:nowrap }
+.hudpill b{ font-size:13px }
+.hudbtn{ width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.9);
+  font-size:16px; cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,.12); flex:none }
+.hudbtn:last-of-type{ margin-left:auto }
+.hudbtn:active{ transform:translateY(2px) }
+
+.maparea{ position:relative; width:calc(100% + 20px); margin:0 -10px; flex:1; min-height:0;
+  overflow:hidden; touch-action:none; display:flex; align-items:center }
+.mapsvg{ width:100%; height:100%; display:block }
+.gatetxt{ font:900 17px "Hiragino Maru Gothic ProN",sans-serif; fill:#fff }
+.signtxt{ font:800 13px "Hiragino Maru Gothic ProN",sans-serif; fill:#4a6b7a }
+.npcbob{ animation:npcbob 1.4s infinite ease-in-out; transform-box:fill-box; transform-origin:center bottom }
+@keyframes npcbob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-2.5px) } }
+.flagl{ animation:flagw 1.1s infinite ease-in-out; transform-box:fill-box; transform-origin:left center }
+.flagr{ animation:flagw 1.1s infinite ease-in-out .3s; transform-box:fill-box; transform-origin:right center }
+@keyframes flagw{ 0%,100%{ transform:skewY(0deg) } 50%{ transform:skewY(-7deg) } }
+
+.maphint{ position:absolute; left:50%; bottom:10px; transform:translateX(-50%); margin:0;
+  font-size:12px; font-weight:800; color:#fff; background:rgba(60,58,78,.6); white-space:nowrap;
+  padding:6px 14px; border-radius:999px; pointer-events:none; animation:hintfade 6s forwards }
+@keyframes hintfade{ 0%,70%{ opacity:1 } 100%{ opacity:0 } }
+
+.stick{ position:absolute; width:110px; height:110px; margin:-55px 0 0 -55px; border-radius:50%;
+  background:rgba(255,255,255,.28); border:3px solid rgba(255,255,255,.6); display:none;
+  pointer-events:none; z-index:5 }
+.stick.on{ display:block }
+.stick i{ position:absolute; left:50%; top:50%; width:46px; height:46px; margin:-23px 0 0 -23px;
+  border-radius:50%; background:rgba(255,255,255,.85); box-shadow:0 3px 8px rgba(0,0,0,.2) }
+
+.actbtn{ width:100%; max-width:520px; flex:none; border:none; font-family:inherit; cursor:pointer;
+  color:#fff; border-radius:20px; padding:11px; opacity:0; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  background:linear-gradient(180deg,#8ee07d,#4bc23a); box-shadow:0 5px 0 #3d9631, 0 8px 16px rgba(0,0,0,.16);
+  transition:opacity .18s }
+.actbtn.on{ opacity:1; pointer-events:auto; animation:pop .3s cubic-bezier(.2,1.6,.4,1) both }
+.actbtn:active{ transform:translateY(4px); box-shadow:0 1px 0 #3d9631 }
+.actbtn b{ font-size:19px } .actbtn small{ font-size:11.5px; font-weight:700; opacity:.95 }
+
+/* ---- かいわの まど ---- */
+.talkback{ position:absolute; inset:0; z-index:58; display:flex; align-items:flex-end;
+  justify-content:center; padding:14px; background:rgba(0,0,0,.18) }
+.talkbox{ width:100%; max-width:460px; background:#fff; border-radius:22px; padding:14px 16px 12px;
+  box-shadow:0 10px 26px rgba(0,0,0,.22); animation:talkin .25s cubic-bezier(.2,1.5,.4,1) both;
+  position:relative }
+@keyframes talkin{ from{ transform:translateY(28px); opacity:0 } to{ transform:none; opacity:1 } }
+.talkname{ position:absolute; top:-13px; left:16px; background:#ff8a2b; color:#fff;
+  font-size:13px; font-weight:900; padding:4px 14px; border-radius:999px;
+  box-shadow:0 3px 8px rgba(0,0,0,.18) }
+.talktext{ font-size:15px; font-weight:700; line-height:1.75; color:#3c3a4e; min-height:52px; margin-top:6px }
+.talktext b{ color:#e0538a }
+.talknext{ text-align:right; font-size:13px; color:#9fb0bb; font-weight:900;
+  animation:nextbob .8s infinite ease-in-out }
+@keyframes nextbob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(3px) } }
+.talkchoices{ display:flex; flex-direction:column; gap:7px; margin-top:8px }
+.talkchoice{ border:3px solid #e6eef2; background:#fff; border-radius:14px; padding:11px 14px;
+  font-family:inherit; font-size:15px; font-weight:800; color:#3c3a4e; cursor:pointer; text-align:left }
+.talkchoice:active{ transform:scale(.98); background:#f2f8fb }
+.statbox{ background:#f2f8fb; border-radius:14px; padding:9px 12px; margin-bottom:8px;
+  display:flex; flex-direction:column; gap:5px }
+.stline{ display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800; color:#4a6b7a }
+.minibar{ flex:1; height:9px; background:#dde8ee; border-radius:999px; overflow:hidden }
+.minibar b{ display:block; height:100%; background:linear-gradient(90deg,#ffd45e,#ff8ab5); border-radius:999px }
+
 /* ---- キッズファーム ---- */
 .caremenu{ display:flex; flex-direction:column; gap:10px }
 .carecard{ border:none; cursor:pointer; font-family:inherit; text-align:left; color:var(--ink);

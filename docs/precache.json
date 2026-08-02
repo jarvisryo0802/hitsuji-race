@@ -1,5 +1,5 @@
 {
-  "cache": "makaino-sheep-v5",
+  "cache": "makaino-sheep-v6",
   "files": [
     "./",
     "./index.html",
@@ -15,6 +15,7 @@
     "./js/sheep.js",
     "./js/ui.js",
     "./js/farm.js",
-    "./js/race.js"
+    "./js/race.js",
+    "./js/map.js"
   ]
 }

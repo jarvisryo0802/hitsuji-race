@@ -1,0 +1,333 @@
+// ===== ぼくじょうを あるきまわる がめん（とりのめ）=====
+// ゆびで がめんを おして うごかすと、しゅじんこうが ぼくじょうを あるく。
+// じはんき・ひつじの さく・レースかいじょう・スタッフに ちかづくと
+// ボタンが でて、そこで できることを えらべる。
+import * as S from "./save.js";
+import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
+import { $, show, tap, toast, say, yen } from "./ui.js";
+
+const W = 720, H = 1000;               // ぼくじょう ぜんたいの ひろさ
+const VIEW_W = 440, VIEW_H = 704;      // がめんに うつる ぶん（index.html の viewBox と そろえる）
+const SPEED = 165;                     // 1びょうに あるく きょり
+const STICK_MAX = 58;                  // ゆびを うごかす さいだい（ピクセル）
+
+// いける ばしょ
+export const SPOTS = [
+  { id:"pen",   x:172, y:470, r:120, name:"ひつじの さく",     act:"あいさつする" },
+  { id:"race",  x:360, y:170, r:130, name:"レースかいじょう",   act:"はいる" },
+  { id:"shop",  x:503, y:672, r:88,  name:"エサの じはんき",   act:"かう" },
+  { id:"gacha", x:628, y:790, r:82,  name:"ガチャ",            act:"まわす" },
+  { id:"staff", x:246, y:742, r:82,  name:"スタッフの おねえさん", act:"はなす" },
+];
+
+// とおれない ばしょ
+const SOLID = [
+  { x: 52, y:376, w:242, h:150 },   // ひつじの さく
+  { x:468, y:352, w:180, h:148 },   // なや
+  { x:470, y:628, w: 66, h: 62 },   // じはんき
+  { x:598, y:752, w: 62, h: 60 },   // ガチャ
+  { x:250, y: 92, w:220, h: 34 },   // レースゲートの よこぼう
+];
+
+const st = {
+  x: 360, y: 900, face: 1, gait: 0,
+  vx: 0, vy: 0, near: null,
+  raf: 0, timer: 0, last: 0, on: false,
+  stick: null, origin: null,
+};
+
+/* ---------- しゅじんこうの え（あしもとが 0,0）---------- */
+function kidArt(){
+  return `
+    <ellipse cx="0" cy="1" rx="15" ry="4.5" fill="rgba(0,0,0,.16)"/>
+    <rect class="kl1" x="-8.5" y="-15" width="7.5" height="16" rx="3.5" fill="#4a6b9a"/>
+    <rect class="kl2" x="1"    y="-15" width="7.5" height="16" rx="3.5" fill="#4a6b9a"/>
+    <rect x="-12" y="-36" width="24" height="23" rx="8" fill="#ff8a2b"/>
+    <rect class="ka1" x="-17.5" y="-34" width="6.5" height="16" rx="3.2" fill="#f6d3ae"/>
+    <rect class="ka2" x="11"    y="-34" width="6.5" height="16" rx="3.2" fill="#f6d3ae"/>
+    <circle cx="0" cy="-46" r="13.5" fill="#f6d3ae"/>
+    <path d="M-13.5,-48 a13.5,13.5 0 0 1 27,0 q-13.5,-8 -27,0z" fill="#5a4636"/>
+    <circle cx="-4.8" cy="-45" r="2.1" fill="#3a3a4a"/>
+    <circle cx="4.8"  cy="-45" r="2.1" fill="#3a3a4a"/>
+    <path d="M-3,-39 q3,3 6,0" stroke="#c9736b" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+}
+
+/* ---------- スタッフの え ---------- */
+function staffArt(){
+  return `
+    <ellipse cx="0" cy="1" rx="15" ry="4.5" fill="rgba(0,0,0,.16)"/>
+    <rect x="-8.5" y="-15" width="7.5" height="16" rx="3.5" fill="#6b6f7a"/>
+    <rect x="1"    y="-15" width="7.5" height="16" rx="3.5" fill="#6b6f7a"/>
+    <rect x="-12" y="-36" width="24" height="23" rx="8" fill="#4ec26a"/>
+    <rect x="-17.5" y="-34" width="6.5" height="16" rx="3.2" fill="#f6d3ae"/>
+    <rect x="11"    y="-34" width="6.5" height="16" rx="3.2" fill="#f6d3ae"/>
+    <circle cx="0" cy="-46" r="13.5" fill="#f6d3ae"/>
+    <path d="M-14,-49 a14,14 0 0 1 28,0 q-14,-9 -28,0z" fill="#3f2f22"/>
+    <rect x="-16" y="-52" width="32" height="5" rx="2.5" fill="#e0625e"/>
+    <path d="M-16,-52 a16,10 0 0 1 32,0z" fill="#e0625e"/>
+    <circle cx="-4.8" cy="-45" r="2.1" fill="#3a3a4a"/>
+    <circle cx="4.8"  cy="-45" r="2.1" fill="#3a3a4a"/>
+    <path d="M-3.5,-39 q3.5,3.5 7,0" stroke="#c9736b" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+}
+
+/* ---------- ぼくじょうの え ---------- */
+function tree(x, y, s = 1){
+  return `<g transform="translate(${x},${y}) scale(${s})">
+    <ellipse cx="0" cy="2" rx="17" ry="5" fill="rgba(0,0,0,.13)"/>
+    <rect x="-4" y="-26" width="8" height="28" rx="3" fill="#a5764a"/>
+    <circle cx="0" cy="-40" r="24" fill="#5fb455"/>
+    <circle cx="-13" cy="-31" r="16" fill="#6ec263"/>
+    <circle cx="13" cy="-32" r="15" fill="#6ec263"/></g>`;
+}
+function flowers(x, y, n, c){
+  let s = "";
+  for (let i = 0; i < n; i++){
+    const fx = x + (i % 3) * 15 + (i % 2) * 6, fy = y + Math.floor(i / 3) * 13;
+    s += `<circle cx="${fx}" cy="${fy}" r="4" fill="${c}"/>
+          <circle cx="${fx}" cy="${fy}" r="1.6" fill="#fff6c0"/>`;
+  }
+  return s;
+}
+
+function worldSVG(d){
+  let fence = "";
+  for (let x = 52; x <= 294; x += 24) fence += `<rect x="${x}" y="376" width="6" height="150" rx="3" fill="#f3ead6"/>`;
+  fence += `<rect x="46" y="384" width="256" height="7" rx="3.5" fill="#fffaf0"/>
+            <rect x="46" y="470" width="256" height="7" rx="3.5" fill="#fffaf0"/>`;
+
+  return `
+  <rect x="-40" y="-40" width="${W + 80}" height="${H + 80}" fill="#9ddc84"/>
+  <ellipse cx="120" cy="180" rx="150" ry="90" fill="#a8e392"/>
+  <ellipse cx="620" cy="520" rx="140" ry="110" fill="#a8e392"/>
+
+  <!-- みち -->
+  <rect x="326" y="150" width="68" height="760" rx="34" fill="#e3c9a0"/>
+  <rect x="150" y="512" width="230" height="56" rx="28" fill="#e3c9a0"/>
+  <rect x="340" y="656" width="200" height="56" rx="28" fill="#e3c9a0"/>
+  <rect x="470" y="686" width="190" height="56" rx="28" fill="#e3c9a0"/>
+  <rect x="230" y="700" width="140" height="54" rx="27" fill="#e3c9a0"/>
+  <ellipse cx="360" cy="880" rx="120" ry="70" fill="#e8d3ad"/>
+
+  <!-- いけ -->
+  <ellipse cx="612" cy="212" rx="74" ry="46" fill="#8fd3ff"/>
+  <ellipse cx="612" cy="212" rx="74" ry="46" fill="none" stroke="#fff" stroke-width="4" opacity=".6"/>
+
+  <!-- レースかいじょうの ゲート -->
+  <rect x="250" y="92" width="220" height="34" rx="10" fill="#e0625e"/>
+  <text x="360" y="116" text-anchor="middle" class="gatetxt">レースかいじょう</text>
+  <rect x="248" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
+  <rect x="452" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
+  <g class="flagl"><polygon points="258,86 258,62 292,74" fill="#ffd45e"/></g>
+  <g class="flagr"><polygon points="462,86 462,62 428,74" fill="#ffd45e"/></g>
+
+  <!-- ひつじの さく -->
+  <rect x="52" y="376" width="242" height="150" rx="10" fill="#b6e8a0"/>
+  ${flowers(70, 500, 6, "#ff8fb4")}
+  <g id="penSheep"></g>
+  ${fence}
+  <rect x="120" y="340" width="112" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="176" y="358" text-anchor="middle" class="signtxt">ひつじの さく</text>
+
+  <!-- なや -->
+  <polygon points="462,352 558,300 654,352" fill="#f7f7f7"/>
+  <rect x="472" y="348" width="172" height="118" rx="8" fill="#e0625e"/>
+  <rect x="530" y="398" width="56" height="68" rx="6" fill="#8b3a3a"/>
+  <rect x="656" y="330" width="42" height="136" rx="8" fill="#ece4d4"/>
+  <ellipse cx="677" cy="330" rx="21" ry="14" fill="#cfc5b2"/>
+
+  <!-- エサの じはんき -->
+  <rect x="470" y="628" width="66" height="62" rx="8" fill="#3fa3f5"/>
+  <rect x="476" y="634" width="38" height="34" rx="4" fill="#dff1ff"/>
+  <circle cx="484" cy="642" r="4" fill="#ffb02e"/><circle cx="497" cy="642" r="4" fill="#4ec26a"/>
+  <circle cx="484" cy="656" r="4" fill="#ff6b9d"/><circle cx="497" cy="656" r="4" fill="#a97cff"/>
+  <rect x="520" y="634" width="10" height="24" rx="3" fill="#1f6fb0"/>
+  <rect x="476" y="674" width="52" height="10" rx="4" fill="#1f6fb0"/>
+  <rect x="452" y="596" width="104" height="24" rx="12" fill="#fff" opacity=".9"/>
+  <text x="504" y="613" text-anchor="middle" class="signtxt">エサ 100えん〜</text>
+
+  <!-- ガチャ -->
+  <rect x="598" y="752" width="62" height="60" rx="8" fill="#a97cff"/>
+  <circle cx="629" cy="772" r="19" fill="#fff" opacity=".92"/>
+  <circle cx="622" cy="768" r="6" fill="#ff8fb4"/><circle cx="636" cy="774" r="6" fill="#ffd45e"/>
+  <circle cx="627" cy="780" r="6" fill="#7fc7ff"/>
+  <circle cx="629" cy="798" r="6" fill="#ffd45e"/>
+  <rect x="584" y="722" width="90" height="24" rx="12" fill="#fff" opacity=".9"/>
+  <text x="629" y="739" text-anchor="middle" class="signtxt">ガチャ 300えん</text>
+
+  <!-- き と はな -->
+  ${tree(70, 210)} ${tree(150, 140, .85)} ${tree(660, 620, .9)}
+  ${tree(80, 700, .8)} ${tree(620, 130, .75)} ${tree(120, 880, .9)}
+  ${tree(640, 900, .85)}
+  ${flowers(430, 250, 6, "#ffd45e")}
+  ${flowers(180, 620, 6, "#c3a4ff")}
+  ${flowers(520, 860, 6, "#ff8fb4")}
+
+  <!-- スタッフ -->
+  <g id="npcStaff" transform="translate(246,742)"><g class="npcbob">${staffArt()}</g></g>
+
+  <!-- しゅじんこう -->
+  <g id="player"><g class="kidbody">${kidArt()}</g></g>`;
+}
+
+/* =========================================================
+   がめんを つくる
+   ========================================================= */
+export function buildMap(){
+  const d = S.data;
+  $("#mapWorld").innerHTML = worldSVG(d);
+  // さくの なかで じぶんの ひつじが くさを たべている
+  $("#penSheep").innerHTML =
+    `<g transform="translate(200,452) scale(0.86) translate(${-FOOT_X},${-FOOT_Y})">${sheepArt(d.color)}</g>`;
+  st.x = 360; st.y = 900; st.face = 1; st.near = null;
+  refreshHud();
+}
+
+export function refreshHud(){
+  $("#mapMoney").textContent = S.data.money.toLocaleString();
+  $("#mapDay").textContent = S.data.days;
+  $("#mapCare").textContent = S.data.careLeft;
+  $("#mapRace").textContent = S.data.raceLeft;
+}
+
+/* =========================================================
+   うごかす
+   ========================================================= */
+export function startMap(){
+  st.on = true;
+  st.last = performance.now();
+  bindStick();
+  loop(st.last);
+}
+export function stopMap(){
+  st.on = false;
+  cancelAnimationFrame(st.raf); clearTimeout(st.timer);
+  st.vx = st.vy = 0;
+  hideStick();
+}
+
+function loop(ts){
+  if (!st.on) return;
+  cancelAnimationFrame(st.raf); clearTimeout(st.timer);
+  const dt = Math.max(0, Math.min(0.05, (ts - st.last) / 1000));
+  st.last = ts;
+  step(dt);
+  st.raf = requestAnimationFrame(loop);
+  st.timer = setTimeout(() => loop(performance.now()), 40);
+}
+
+function blocked(x, y){
+  for (const s of SOLID){
+    if (x > s.x - 12 && x < s.x + s.w + 12 && y > s.y - 6 && y < s.y + s.h + 10) return true;
+  }
+  return false;
+}
+
+function step(dt){
+  const moving = st.vx !== 0 || st.vy !== 0;
+  if (moving){
+    const nx = st.x + st.vx * dt, ny = st.y + st.vy * dt;
+    // よこと たてを べつべつに ためして、かべに そって すべるように する
+    if (!blocked(nx, st.y)) st.x = nx;
+    if (!blocked(st.x, ny)) st.y = ny;
+    st.x = Math.max(26, Math.min(W - 26, st.x));
+    st.y = Math.max(150, Math.min(H - 24, st.y));
+    if (Math.abs(st.vx) > 4) st.face = st.vx < 0 ? -1 : 1;
+    st.gait += dt * 11;
+  } else {
+    st.gait = 0;
+  }
+
+  // えがく
+  const p = $("#player");
+  if (!p) return;
+  p.setAttribute("transform", `translate(${st.x.toFixed(1)},${st.y.toFixed(1)}) scale(${st.face},1)`);
+  const body = p.querySelector(".kidbody");
+  const bob = moving ? Math.abs(Math.sin(st.gait)) * 2.4 : 0;
+  body.setAttribute("transform", `translate(0 ${-bob.toFixed(2)})`);
+  const swing = moving ? Math.sin(st.gait) * 15 : 0;
+  const set = (cls, a, px) => {
+    const el = p.querySelector(cls);
+    if (el) el.setAttribute("transform", `rotate(${a.toFixed(1)} ${px} -14)`);
+  };
+  set(".kl1", swing, -4.7); set(".kl2", -swing, 4.7);
+  const seta = (cls, a, px) => {
+    const el = p.querySelector(cls);
+    if (el) el.setAttribute("transform", `rotate(${a.toFixed(1)} ${px} -32)`);
+  };
+  seta(".ka1", -swing * 0.8, -14.2); seta(".ka2", swing * 0.8, 14.2);
+
+  // カメラ
+  const camX = Math.max(0, Math.min(W - VIEW_W, st.x - VIEW_W / 2));
+  const camY = Math.max(0, Math.min(H - VIEW_H, st.y - VIEW_H / 2 - 40));
+  $("#mapWorld").setAttribute("transform", `translate(${-camX.toFixed(1)},${-camY.toFixed(1)})`);
+
+  // ちかくの ばしょを しらべる
+  let found = null, best = 1e9;
+  for (const sp of SPOTS){
+    const dd = Math.hypot(sp.x - st.x, sp.y - st.y);
+    if (dd < sp.r && dd < best){ best = dd; found = sp; }
+  }
+  if ((found && found.id) !== (st.near && st.near.id)){
+    st.near = found;
+    const btn = $("#actBtn");
+    if (found){
+      btn.classList.add("on");
+      btn.innerHTML = `<b>${found.act}</b><small>${found.name}</small>`;
+      tap();
+    } else btn.classList.remove("on");
+  }
+}
+
+/* ---------- ゆびで うごかす ---------- */
+function bindStick(){
+  const area = $("#mapArea");
+  if (area.dataset.bound) return;
+  area.dataset.bound = "1";
+
+  const setVec = (e) => {
+    if (!st.origin) return;
+    let dx = e.clientX - st.origin.x, dy = e.clientY - st.origin.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 6){ st.vx = st.vy = 0; moveKnob(0, 0); return; }
+    const k = Math.min(1, len / STICK_MAX);
+    st.vx = (dx / len) * SPEED * k;
+    st.vy = (dy / len) * SPEED * k;
+    const cl = Math.min(len, STICK_MAX);
+    moveKnob((dx / len) * cl, (dy / len) * cl);
+  };
+
+  area.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    st.origin = { x: e.clientX, y: e.clientY };
+    showStick(e.clientX, e.clientY);
+    area.setPointerCapture && area.setPointerCapture(e.pointerId);
+    setVec(e);
+  });
+  area.addEventListener("pointermove", (e) => { if (st.origin) setVec(e); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev =>
+    area.addEventListener(ev, () => { st.origin = null; st.vx = st.vy = 0; hideStick(); }));
+}
+
+function showStick(x, y){
+  const s = $("#stick"), r = $("#mapArea").getBoundingClientRect();
+  s.style.left = (x - r.left) + "px";
+  s.style.top  = (y - r.top) + "px";
+  s.classList.add("on");
+  moveKnob(0, 0);
+}
+function hideStick(){ const s = $("#stick"); if (s) s.classList.remove("on"); }
+function moveKnob(dx, dy){
+  const k = $("#stickKnob");
+  if (k) k.style.transform = `translate(${dx}px,${dy}px)`;
+}
+
+/* =========================================================
+   ちかくの ばしょで なにか する
+   ========================================================= */
+export function nearSpot(){ return st.near; }
+
+export function faceHint(){
+  // ひつじの さくに いるとき、きょう たべたいものを おしえる
+  const want = S.data.wantFood;
+  return want;
+}

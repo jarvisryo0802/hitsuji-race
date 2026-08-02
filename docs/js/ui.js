@@ -172,6 +172,72 @@ export function toast(text, ms = 1800){
   setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, ms);
 }
 
+/* ---- かいわ（したから でてくる はなしの まど）----
+   text を 1もじずつ だす。とちゅうで タップすると さいごまで だす。
+   choices を わたすと、えらんだ ものの value を かえす。 */
+export function say(name, text, choices = null){
+  return new Promise(resolve => {
+    const back = document.createElement("div");
+    back.className = "talkback";
+    back.innerHTML = `
+      <div class="talkbox">
+        ${name ? `<div class="talkname">${name}</div>` : ""}
+        <div class="talktext"></div>
+        <div class="talkchoices"></div>
+        <div class="talknext">▼</div>
+      </div>`;
+    $("#app").appendChild(back);
+
+    const txt = back.querySelector(".talktext");
+    const nx  = back.querySelector(".talknext");
+    const ch  = back.querySelector(".talkchoices");
+    let done = false;
+
+    // <b> などの タグは 1もじずつ ださずに まとめて だす。
+    // タグを もじ数に かぞえると、ながい ぶんしょうで とても おそくなる。
+    const parts = [];
+    for (let i = 0; i < text.length; ){
+      if (text[i] === "<"){
+        const j = text.indexOf(">", i);
+        if (j < 0){ parts.push({ ch: text[i] }); i++; continue; }
+        parts.push({ tag: text.slice(i, j + 1) });
+        i = j + 1;
+      } else { parts.push({ ch: text[i] }); i++; }
+    }
+    const visible = parts.filter(p => p.ch).length;
+    const wait = Math.max(11, Math.min(28, 1000 / Math.max(1, visible)));
+
+    let k = 0, buf = "", shown = 0;
+    const timer = setInterval(() => {
+      // つぎの 1もじが でるまで、タグは まとめて つける
+      while (k < parts.length && parts[k].tag) buf += parts[k++].tag;
+      if (k < parts.length){ buf += parts[k++].ch; shown++; }
+      txt.innerHTML = buf;
+      if (shown % 3 === 0) sound(520 + Math.random() * 120, 0.03, "square", 0.05);
+      if (k >= parts.length) finish();
+    }, wait);
+
+    function finish(){
+      clearInterval(timer);
+      txt.innerHTML = text;
+      done = true;
+      if (choices && choices.length){
+        nx.style.display = "none";
+        ch.innerHTML = choices.map((c, k) =>
+          `<button class="talkchoice" data-k="${k}">${c.label}</button>`).join("");
+        ch.querySelectorAll(".talkchoice").forEach(b => {
+          b.onclick = (e) => { e.stopPropagation(); tap(); back.remove(); resolve(choices[+b.dataset.k].value); };
+        });
+      }
+    }
+
+    back.onclick = () => {
+      if (!done){ finish(); return; }
+      if (!choices || !choices.length){ tap(); back.remove(); resolve(null); }
+    };
+  });
+}
+
 // ---- かんたんな ダイアログ ----
 export function dialog({ title, body, ok = "OK", cancel = null }){
   return new Promise(resolve => {

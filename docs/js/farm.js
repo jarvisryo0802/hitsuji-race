@@ -9,47 +9,17 @@ import { $, show, tap, good, bad, coin, sound, toast, dialog, confetti, yen,
          baa, munch } from "./ui.js";
 
 /* =========================================================
-   ぼくじょう（ホーム）
+   ひつじの ようす（かいわの なかで みせる）
    ========================================================= */
-export function renderFarm(){
+export function sheepStatusHTML(){
   const d = S.data;
-  $("#farmName").textContent = d.name;
-  $("#farmRank").textContent = S.rank();
-  $("#farmMoney").textContent = d.money.toLocaleString();
-  $("#farmSheep").innerHTML = happySheep(d.color, 170);
-  $("#farmDays").textContent = d.days;
-
-  bars();
-
-  // きょう たべたいもの の ヒント
-  const want = findFood(d.wantFood);
-  $("#farmWant").innerHTML = `<b>${d.name}</b>のこえ：「${want.hint} が たべたいなあ」`;
-
-  $("#careLeft").textContent = d.careLeft;
-  $("#raceLeft").textContent = d.raceLeft;
-  $("#btnCare").disabled = d.careLeft <= 0;
-  $("#btnRace").disabled = d.raceLeft <= 0;
-  $("#btnCare").querySelector(".sub").textContent =
-    d.careLeft > 0 ? `あと ${d.careLeft}かい` : "きょうは おしまい";
-  $("#btnRace").querySelector(".sub").textContent =
-    d.raceLeft > 0 ? "1日 1かい" : "また あした";
-
-  const log = d.log.length
-    ? d.log.map(l => `<li>${l.t}</li>`).join("")
-    : "<li>まだ なにも していないよ</li>";
-  $("#farmLog").innerHTML = log;
+  const row = (icon, name, v) =>
+    `<span class="stline">${icon} ${name}
+       <i class="minibar"><b style="width:${Math.min(100, v)}%"></b></i> ${v}</span>`;
+  return `${row("⚡", "はやさ", d.speed)}${row("💪", "スタミナ", d.stamina)}${row("💖", "なかよし", d.love)}`;
 }
 
-function bars(){
-  const d = S.data;
-  const set = (id, v) => {
-    $(id + "Val").textContent = v;
-    $(id + "Bar").style.width = Math.min(100, v) + "%";
-  };
-  set("#stSpeed", d.speed);
-  set("#stStam",  d.stamina);
-  set("#stLove",  d.love);
-}
+export const wantHint = () => findFood(S.data.wantFood).hint;
 
 /* =========================================================
    キッズファーム（おせわ）
@@ -89,11 +59,14 @@ function finishCare(title, gained, extra = ""){
   $("#careAgain").onclick = () => {
     tap();
     if (S.data.careLeft > 0) renderCare();
-    else { show("farm"); renderFarm(); }
+    else backToMap();
   };
   S.addLog(title);
-  bars();
 }
+
+// ぼくじょうに もどる（main.js から わりあてる）
+export let backToMap = () => {};
+export function setBackToMap(fn){ backToMap = fn; }
 
 // ---- ① ごはん ----
 export function careFood(){

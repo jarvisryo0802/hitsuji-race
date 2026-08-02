@@ -36,53 +36,24 @@
     <p class="fine">※ 実在の牧場とは関係のない、こども向けの非公式ファンゲームです</p>
   </section>
 
-  <!-- ============ ぼくじょう（ホーム）============ -->
-  <section class="screen" id="farm">
-    <div class="topbar">
-      <div class="sign" id="farmSign">🐑 ぼくじょう</div>
-      <div class="money">💰 <b id="farmMoney">0</b>えん</div>
+  <!-- ============ ぼくじょう（あるきまわる）============ -->
+  <section class="screen" id="map">
+    <div class="maphud">
+      <div class="money">💰 <b id="mapMoney">0</b>えん</div>
+      <div class="hudpill"><b id="mapDay">1</b>日め</div>
+      <div class="hudpill">🧺<b id="mapCare">3</b></div>
+      <div class="hudpill">🏁<b id="mapRace">1</b></div>
+      <button class="hudbtn" id="mapBag">🎒</button>
+      <button class="hudbtn" id="mapMenu">⚙</button>
     </div>
-
-    <div class="card farmcard">
-      <div class="sheepbox" id="farmSheep"></div>
-      <div class="namerow">
-        <b id="farmName">-</b>
-        <span class="rankpill" id="farmRank">-</span>
-        <span class="dayspill"><b id="farmDays">0</b>日め</span>
-      </div>
-      <p class="speech" id="farmWant"></p>
-
-      <div class="stats">
-        <div class="strow2"><span>⚡ はやさ</span><i class="bar"><b id="stSpeedBar"></b></i><em id="stSpeedVal">0</em></div>
-        <div class="strow2"><span>💪 スタミナ</span><i class="bar"><b id="stStamBar"></b></i><em id="stStamVal">0</em></div>
-        <div class="strow2"><span>💖 なかよし</span><i class="bar"><b id="stLoveBar"></b></i><em id="stLoveVal">0</em></div>
-      </div>
+    <div class="maparea" id="mapArea">
+      <svg class="mapsvg" viewBox="0 0 440 704" xmlns="http://www.w3.org/2000/svg">
+        <g id="mapWorld"></g>
+      </svg>
+      <div class="stick" id="stick"><i id="stickKnob"></i></div>
+      <p class="maphint" id="mapHint">がめんを ゆびで おして うごかそう</p>
     </div>
-
-    <div class="menu">
-      <button class="mbtn orange" id="btnCare">
-        <span class="mi">🧺</span><span class="mt">キッズファーム</span><span class="sub">あと 3かい</span>
-      </button>
-      <button class="mbtn pink" id="btnRace">
-        <span class="mi">🏁</span><span class="mt">レースに でる</span><span class="sub">1日 1かい</span>
-      </button>
-      <button class="mbtn blue" id="btnShop">
-        <span class="mi">🥤</span><span class="mt">エサの じはんき</span><span class="sub">100えん〜</span>
-      </button>
-      <button class="mbtn purple" id="btnGacha">
-        <span class="mi">🎁</span><span class="mt">ガチャ</span><span class="sub">300えん</span>
-      </button>
-      <button class="mbtn green wide" id="btnBag">
-        <span class="mi">🎒</span><span class="mt">もちもの・わざ</span><span class="sub">レースの じゅんび</span>
-      </button>
-    </div>
-
-    <div class="card">
-      <p class="ttl small">きょうまでの できごと</p>
-      <ul class="log" id="farmLog"></ul>
-    </div>
-    <p class="hidden-hint">きょう できること：おせわ <b id="careLeft">3</b>かい／レース <b id="raceLeft">1</b>かい</p>
-    <p class="fine">※ 実在の牧場とは関係のない、こども向けの非公式ファンゲームです</p>
+    <button class="actbtn" id="actBtn"></button>
   </section>
 
   <!-- ============ キッズファーム（おせわ）============ -->
