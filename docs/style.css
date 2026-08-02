@@ -166,6 +166,19 @@ html,body{
 .foodcard .fi{ font-size:26px } .foodcard .fn{ font-size:13px; font-weight:800 }
 .foodcard .fnum{ font-size:11px; color:var(--sub); font-weight:800 }
 
+/* ---- エサやり（さくの そとから）---- */
+.feedwrap{ text-align:center }
+.feedsvg{ width:100%; height:auto; display:block; border-radius:18px; overflow:hidden;
+  background:linear-gradient(180deg,#bfe9ff,#e7f7ff) }
+.feedmark{ font:900 26px "Hiragino Maru Gothic ProN",sans-serif; fill:#ff4f88;
+  paint-order:stroke; stroke:#fff; stroke-width:5; transition:opacity .3s }
+.feedfood{ font-size:30px }
+.feedmsg{ font-size:14px; font-weight:800; color:#4a6b7a; line-height:1.6; margin:10px 0 8px }
+.eatbar{ height:16px; background:#e7eef2; border-radius:999px; overflow:hidden; margin:0 auto 12px;
+  max-width:260px; box-shadow:inset 0 2px 4px rgba(0,0,0,.08) }
+.eatbar i{ display:block; height:100%; width:0;
+  background:linear-gradient(90deg,#8ee07d,#4bc23a); border-radius:999px; transition:width .1s linear }
+
 .brusharea{ position:relative; height:210px; background:#eaf7ff; border-radius:18px; overflow:hidden }
 .brushsheep{ position:absolute; inset:16px 10px; display:flex; align-items:center; justify-content:center }
 .brushsheep svg{ width:100%; height:100%; }
@@ -280,6 +293,29 @@ html,body{
 .runner.boosting .body{ filter:drop-shadow(0 0 7px #ffd45e) }
 .runner .arrow{ animation:arrowbob .6s infinite ease-in-out }
 @keyframes arrowbob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+/* おうえんの ひとたち */
+.fan{ transform-box:fill-box; transform-origin:center bottom; animation:fanbob .72s infinite ease-in-out }
+@keyframes fanbob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-3.5px) } }
+
+/* わざが でているときの スピードせん */
+.speedlines{ opacity:0; fill:#fff }
+.runner.boosting .speedlines{ opacity:.9; animation:speedl .22s infinite linear }
+@keyframes speedl{ 0%{ transform:translateX(0); opacity:.9 } 100%{ transform:translateX(-9px); opacity:.2 } }
+
+/* さいごの ちょくせん：がめんの ふちが すこし もえる */
+#race.spurt .trackwrap::after{ content:""; position:absolute; inset:0; pointer-events:none;
+  box-shadow:inset 0 0 46px rgba(255,140,60,.42); animation:spurtpulse .8s infinite alternate }
+@keyframes spurtpulse{ from{ opacity:.5 } to{ opacity:1 } }
+.trackwrap{ position:relative }
+
+/* ゴールの しゅんかん */
+#goalFlash{ position:absolute; inset:0; z-index:18; display:none; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.55); font-size:clamp(40px,13vw,72px); font-weight:900; color:#fff;
+  text-shadow:0 5px 0 #ff5f92, 0 10px 20px rgba(0,0,0,.3); pointer-events:none }
+#goalFlash.on{ display:flex; animation:goalflash 1.1s ease-out forwards }
+@keyframes goalflash{ 0%{ opacity:0; transform:scale(1.6) } 18%{ opacity:1; transform:scale(1) }
+  100%{ opacity:0; transform:scale(1.05) } }
+
 /* はしった あとの すなぼこり */
 .puff{ fill:#fff5e0; opacity:.7; transform-box:fill-box; transform-origin:center;
   animation:puffout .5s ease-out forwards; pointer-events:none }

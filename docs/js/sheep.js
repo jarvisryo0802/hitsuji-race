@@ -1,6 +1,9 @@
 // ===== ひつじの え =====
 // もとの おおきさは よこ100 × たて76。あしもとの まんなかは (49, 67)。
 export const ART_W = 100, ART_H = 76, FOOT_X = 49, FOOT_Y = 67;
+// あしの つけね の いち と、まえあし・うしろあし の うごく じゅんばん
+export const LEG_X = [33.5, 44.5, 55.5, 64.5];
+export const LEG_PHASE = [0, 0.35, Math.PI, Math.PI + 0.35];
 
 // <svg> の なかみだけを かえす（レースの がめんに そのまま うめこめる）
 export function sheepArt(color, opts = {}){

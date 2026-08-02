@@ -61,10 +61,14 @@ const BASS = [
 ];
 const BPM = 152;
 
-let mTimer = 0, mStep = 0, mNext = 0, mOn = false;
+let mTimer = 0, mStep = 0, mNext = 0, mOn = false, tempo = 1;
+
+// レースの おわりで テンポを あげると もりあがる
+export function setTempo(m){ tempo = m; }
 
 export function startMusic(){
   stopMusic();
+  tempo = 1;
   if (muted || !ensureCtx()) return;
   mOn = true; mStep = 0; mNext = actx.currentTime + 0.1;
   mTimer = setInterval(tickMusic, 60);
@@ -73,7 +77,7 @@ export function stopMusic(){ mOn = false; clearInterval(mTimer); mTimer = 0; }
 
 function tickMusic(){
   if (!mOn || !actx) return;
-  const step = 30 / BPM;                       // 8ぶおんぷ 1つぶんの びょうすう
+  const step = 30 / (BPM * tempo);             // 8ぶおんぷ 1つぶんの びょうすう
   while (mNext < actx.currentTime + 0.3){      // すこし さきまで よやくしておく
     const i = mStep % MELODY.length;
     voice(MELODY[i], mNext, step * 0.85, "square",   0.042);
@@ -101,6 +105,58 @@ function beat(t){
   o.connect(g); g.connect(actx.destination);
   o.start(t); o.stop(t + 0.06);
 }
+
+/* ---- かんせい（ざわざわ・わーっ）----
+   ノイズを バンドパスに とおして、人の こえの ような ざわめきを つくる */
+let noiseBuf = null;
+function noise(){
+  if (noiseBuf) return noiseBuf;
+  const len = Math.floor(actx.sampleRate * 2);
+  noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+
+export function cheer(strength = 1, dur = 1.5){
+  if (muted || !ensureCtx()) return;
+  const t = actx.currentTime;
+  const src = actx.createBufferSource();
+  src.buffer = noise(); src.loop = true;
+  const bp = actx.createBiquadFilter();
+  bp.type = "bandpass"; bp.Q.value = 0.8;
+  bp.frequency.setValueAtTime(650, t);
+  bp.frequency.linearRampToValueAtTime(1150, t + dur * 0.3);
+  bp.frequency.linearRampToValueAtTime(800, t + dur);
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.055 * strength, t + dur * 0.25);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  src.connect(bp); bp.connect(g); g.connect(actx.destination);
+  src.start(t); src.stop(t + dur + 0.05);
+}
+
+// ひつじの なきごえ
+export function baa(){
+  if (muted || !ensureCtx()) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(430, t);
+  o.frequency.linearRampToValueAtTime(390, t + 0.5);
+  // こきざみに ふるわせて「メェ〜」に する
+  const lfo = actx.createOscillator(), lg = actx.createGain();
+  lfo.frequency.value = 17; lg.gain.value = 26;
+  lfo.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.1, t + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.55);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); lfo.start(t); o.stop(t + 0.6); lfo.stop(t + 0.6);
+}
+
+// もぐもぐ
+export function munch(){ sound(150 + Math.random() * 60, 0.07, "sawtooth", 0.07); }
 export const tap    = () => sound(660, 0.06, "triangle", 0.13);
 export const good   = () => [784, 988, 1319].forEach((f, i) => setTimeout(() => sound(f, 0.16, "triangle", 0.16), i * 90));
 export const bad    = () => sound(180, 0.22, "sawtooth", 0.12);

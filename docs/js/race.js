@@ -1,24 +1,21 @@
 // ===== レース（コーナーのある しゅうかいコース／見守るのが メイン）=====
 import {
-  LAPS, RACE_SECONDS, PRIZE, RIVALS, SKILLS, CALLOUTS,
+  LAPS, RACE_SECONDS, PRIZE, RIVALS, RUNNERS, SKILLS, CALLOUTS,
   findSkill, findItem,
 } from "./data.js";
 import * as S from "./save.js";
-import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
+import { sheepArt, FOOT_X, FOOT_Y, LEG_X, LEG_PHASE } from "./sheep.js";
 import { $, show, sound, tap, good, bad, fanfare, confetti, toast, yen,
-         startMusic, stopMusic } from "./ui.js";
+         startMusic, stopMusic, setTempo, cheer } from "./ui.js";
 
 /* ---------- コースの かたち ---------- */
 // よこに ながい だえん。ひつじは よこむきの えなので、よこに はしるほうが
 // はしって いるように 見える。カーブは ひだり(25%)と みぎ(75%)の はし。
 const CX = 170, CY = 268;          // コースの まんなか
-const LANE = [                     // そとがわ から うちがわ へ 5レーン
-  { rx:132, ry:102 }, { rx:121, ry:93 }, { rx:110, ry:84 },
-  { rx:99,  ry:75 },  { rx:88,  ry:66 },
+const LANE = [                     // そとがわ から うちがわ へ 4レーン（ゆったり）
+  { rx:134, ry:104 }, { rx:120, ry:92 }, { rx:106, ry:80 }, { rx:92, ry:68 },
 ];
-const Y_TOP = CY - 102, Y_BOT = CY + 102;
-const LEG_X = [33.5, 44.5, 55.5, 64.5];              // あしの つけね（え の ざひょう）
-const LEG_PHASE = [0, 0.35, Math.PI, Math.PI + 0.35]; // まえあし と うしろあし を こうごに
+const Y_TOP = CY - 104, Y_BOT = CY + 104;
 const SVGNS = "http://www.w3.org/2000/svg";
 
 // したの まんなかから スタートして、ひだり → うえ → みぎ と まわる
@@ -75,7 +72,7 @@ export function startRace(){
 
   // ライバルは じぶんの つよさに あわせて でてくる（いつでも いいしょうぶに なるように）
   const avg = (d.speed + d.stamina + d.love) / 3;
-  const pool = [...RIVALS].sort(() => Math.random() - 0.5).slice(0, 4);
+  const pool = [...RIVALS].sort(() => Math.random() - 0.5).slice(0, RUNNERS - 1);
   const rivals = pool.map(r => {
     const j = () => Math.max(5, Math.min(99, Math.round(avg + (Math.random() * 13 - 6))));
     return {
@@ -106,6 +103,8 @@ export function startRace(){
 
   st.t = 0; st.finished = 0; st.used = false; st.nextCall = 3;
   st.lapShown = 1; st.running = false; st.leader = null;
+  st.myRank = 0; st.spurt = false; st.goalShown = false;
+  $("#race").classList.remove("spurt");
 
   buildTrack();
   buildSkillButton();
@@ -116,7 +115,8 @@ export function startRace(){
     st.last = performance.now();
     schedule();
     startMusic();
-    callout(pick(CALLOUTS.start));
+    cheer(1.2, 1.8);
+    callout(pick(CALLOUTS.start), true);
   });
 }
 
@@ -148,10 +148,28 @@ function scenery(){
     <circle cx="251" cy="100" r="18" fill="#63b85a"/>
     <rect x="292" y="112" width="5" height="16" fill="#a5764a"/>
     <circle cx="294.5" cy="107" r="13" fill="#72c464"/>
+    <!-- おうえんの ひとたち -->
+    ${crowd()}
     <!-- さく -->
     ${fence}
     <rect x="-60" y="128" width="460" height="4" rx="2" fill="#fffaf0"/>
     <rect x="-60" y="137" width="460" height="4" rx="2" fill="#fffaf0"/>`;
+}
+
+// さくの むこうで おうえんする ひとたち
+function crowd(){
+  const cols = ["#ff8fb4", "#7fc7ff", "#ffd45e", "#a9e0a0", "#c3a4ff", "#ffa87a", "#8fd3ff"];
+  let s = "";
+  for (let i = 0; i < 18; i++){
+    const x = -40 + i * 23 + (i % 3) * 3;
+    if (x > 14 && x < 118) continue;              // なやと サイロの ところは あける
+    const c = cols[i % cols.length];
+    s += `<g class="fan" style="animation-delay:${(i * 0.11).toFixed(2)}s">
+      <rect x="${x - 4.5}" y="119" width="9" height="14" rx="4" fill="${c}"/>
+      <circle cx="${x}" cy="115" r="4.5" fill="#f6d3ae"/>
+    </g>`;
+  }
+  return `<g class="crowd">${s}</g>`;
 }
 
 function buildTrack(){
@@ -188,6 +206,11 @@ function buildTrack(){
     g.setAttribute("class", "runner" + (r.isPlayer ? " me" : ""));
     // あしは CSS ではなく JS で うごかす（えがきなおしで アニメが とまるため）
     g.innerHTML = `
+      <g class="speedlines">
+        <rect x="-20" y="26" width="17" height="3" rx="1.5"/>
+        <rect x="-27" y="37" width="23" height="3" rx="1.5"/>
+        <rect x="-18" y="48" width="15" height="3" rx="1.5"/>
+      </g>
       <g class="body">${sheepArt(r.color)}</g>
       <g class="tagwrap">
         <circle class="badge" cx="6" cy="-4" r="11" fill="#fff" stroke="${r.color}" stroke-width="3.5"/>
@@ -425,10 +448,43 @@ function update(dt){
   const lap = Math.min(LAPS, Math.floor(me.p) + 1);
   if (lap !== st.lapShown){
     st.lapShown = lap;
-    if (lap === LAPS) callout(pick(CALLOUTS.lastLap));
+    if (lap === LAPS){ callout(pick(CALLOUTS.lastLap), true); cheer(0.7, 1.2); }
   }
   $("#lapTxt").textContent = `${lap} / ${LAPS} しゅう`;
   $("#raceBar").style.width = Math.min(100, (me.p / LAPS) * 100) + "%";
+
+  // じぶんの じゅんいが かわったら すぐ しらせる
+  if (st.running && !me.finished){
+    const myRank = order.indexOf(me) + 1;
+    if (st.myRank && myRank !== st.myRank){
+      if (myRank < st.myRank){
+        callout(`${me.name}が ${myRank}いに あがった！`, true);
+        cheer(0.85, 1.1);
+      } else {
+        callout(`${me.name}が ${myRank}いに さがった…`);
+      }
+    }
+    st.myRank = myRank;
+  }
+
+  // さいごの ちょくせん：テンポを あげて もりあげる
+  if (st.running && !st.spurt && me.p / LAPS > 0.82){
+    st.spurt = true;
+    setTempo(1.15);
+    cheer(1.1, 1.8);
+    callout(pick(CALLOUTS.final), true);
+    $("#race").classList.add("spurt");
+  }
+
+  // じぶんが ゴールした しゅんかん
+  if (me.finished && !st.goalShown){
+    st.goalShown = true;
+    cheer(1.4, 2.0);
+    const fl = $("#goalFlash");
+    fl.textContent = "ゴール！";
+    fl.classList.add("on");
+    setTimeout(() => fl.classList.remove("on"), 1100);
+  }
 
   // 「いま つかうと つよい」ヒント
   if (st.running && !st.used){
@@ -439,15 +495,26 @@ function update(dt){
     $("#skillBtn").classList.toggle("ready", !!nice);
   }
 
-  // じっきょう
+  // じっきょう（レースの ようすに あわせて しゃべる）
   if (st.running){
     st.nextCall -= dt;
     if (st.nextCall <= 0){
-      st.nextCall = 3.5 + Math.random() * 3;
-      const top = order[0];
-      if (top !== st.leader){ st.leader = top; callout(`${top.name}${pick(CALLOUTS.lead)}`); }
-      else if (me.p / LAPS > 0.85) callout(pick(CALLOUTS.final));
-      else if (inCorner(me.p % 1)) callout(pick(CALLOUTS.corner));
+      st.nextCall = 2.8 + Math.random() * 2.2;
+      const top = order[0], second = order[1];
+      const spread = order[0].p - order[order.length - 1].p;
+      if (top !== st.leader){
+        st.leader = top;
+        callout(`${top.name}${pick(CALLOUTS.lead)}`, top.isPlayer);
+        cheer(0.6, 0.9);
+      } else if (spread < 0.02){
+        callout(pick(CALLOUTS.close), true);
+      } else if (second && top.p - second.p > 0.06){
+        callout(`${top.name}${pick(CALLOUTS.gap)}`);
+      } else if (me.p / LAPS < 0.8 && order.indexOf(me) > 0 && me.v > st.unit * 1.05){
+        callout(`${me.name}${pick(CALLOUTS.chase)}`, true);
+      } else if (inCorner(me.p % 1)){
+        callout(pick(CALLOUTS.corner));
+      }
     }
   }
 
@@ -499,11 +566,11 @@ function showResult(){
   S.addLog(`レースで ${me.rank}い（${prize ? yen(prize) : "しょうきん なし"}）`);
   S.save();
 
-  const medal = ["🥇", "🥈", "🥉", "4", "5"];
+  const medal = ["🥇", "🥈", "🥉", "4"];
   $("#resultMsg").textContent =
     me.rank === 1 ? "1い！ ゆうしょう！ 🎉" :
     me.rank === 2 ? "おしい！ 2い だったよ" :
-    me.rank === 3 ? "3い！ よく がんばった" : `${me.rank}い… また あした！`;
+    me.rank === 3 ? "3い！ よく がんばった" : "4い… また あした！";
 
   $("#resultList").innerHTML = order.map(r => `
     <div class="rrow ${r.isPlayer ? "me" : ""}">
