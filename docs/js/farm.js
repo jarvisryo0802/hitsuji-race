@@ -120,11 +120,32 @@ const NEAR = { x: 186, y: 203, s: 0.95 };   // さくの まえまで きたと�
 function fenceFront(){
   let posts = "";
   for (let x = -12; x < 350; x += 54){
-    posts += `<rect x="${x}" y="188" width="9" height="80" rx="4" fill="#f3ead6"/>`;
+    posts += `<rect x="${x}" y="188" width="9" height="80" rx="4" fill="url(#fdFenceG)"/>`;
   }
-  return `<g class="fencefront">${posts}
-    <rect x="-20" y="195" width="380" height="9" rx="4.5" fill="#fffaf0"/>
-    <rect x="-20" y="226" width="380" height="9" rx="4.5" fill="#fffaf0"/></g>`;
+  return `<g class="fencefront" filter="url(#fdSoft)">${posts}
+    <rect x="-20" y="195" width="380" height="9" rx="4.5" fill="url(#fdFenceG)"/>
+    <rect x="-20" y="226" width="380" height="9" rx="4.5" fill="url(#fdFenceG)"/></g>`;
+}
+
+function feedDefs(){
+  return `
+  <defs>
+    <radialGradient id="fdGrass" cx="42%" cy="18%" r="95%">
+      <stop offset="0%" stop-color="#c8f0a4"/>
+      <stop offset="100%" stop-color="#8fce78"/>
+    </radialGradient>
+    <linearGradient id="fdFenceG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffdf4"/>
+      <stop offset="100%" stop-color="#ecdcb2"/>
+    </linearGradient>
+    <linearGradient id="fdHandG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe4c4"/>
+      <stop offset="100%" stop-color="#f0c294"/>
+    </linearGradient>
+    <filter id="fdSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.2" flood-color="#1f3018" flood-opacity=".22"/>
+    </filter>
+  </defs>`;
 }
 
 function feedScene(id){
@@ -137,18 +158,19 @@ function feedScene(id){
   $("#careStage").innerHTML = `
     <div class="feedwrap">
       <svg class="feedsvg" viewBox="0 0 340 260" xmlns="http://www.w3.org/2000/svg">
-        <rect x="-20" y="0" width="380" height="260" fill="#a9e394"/>
-        <ellipse cx="30"  cy="34" rx="150" ry="40" fill="#8ad57a"/>
-        <ellipse cx="300" cy="28" rx="125" ry="36" fill="#7ecb6d"/>
-        <ellipse cx="250" cy="78" rx="16" ry="9" fill="#9bdc86"/>
-        <ellipse cx="96"  cy="92" rx="20" ry="10" fill="#9bdc86"/>
+        ${feedDefs()}
+        <rect x="-20" y="0" width="380" height="260" fill="url(#fdGrass)"/>
+        <ellipse cx="30"  cy="34" rx="150" ry="40" fill="#8ad57a" opacity=".6"/>
+        <ellipse cx="300" cy="28" rx="125" ry="36" fill="#7ecb6d" opacity=".55"/>
+        <ellipse cx="250" cy="78" rx="16" ry="9" fill="#9bdc86" opacity=".7"/>
+        <ellipse cx="96"  cy="92" rx="20" ry="10" fill="#9bdc86" opacity=".7"/>
         <g id="feedSheep"><g class="body">${sheepArt(d.color)}</g></g>
         <text id="feedMark" x="0" y="0" class="feedmark" opacity="0">！</text>
         ${fenceFront()}
         <g id="feedHand" opacity="0">
-          <path d="M356,260 L350,214 Q322,188 292,176" stroke="#f6d3ae" stroke-width="28"
+          <path d="M356,260 L350,214 Q322,188 292,176" stroke="url(#fdHandG)" stroke-width="28"
                 stroke-linecap="round" fill="none"/>
-          <circle cx="276" cy="173" r="18" fill="#f6d3ae"/>
+          <circle cx="276" cy="173" r="18" fill="url(#fdHandG)"/>
           <text id="feedFood" x="256" y="172" text-anchor="middle" class="feedfood">${f.icon}</text>
         </g>
       </svg>
