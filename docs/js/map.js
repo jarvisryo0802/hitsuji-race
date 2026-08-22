@@ -1,7 +1,8 @@
 // ===== ぼくじょうを あるきまわる がめん（とりのめ）=====
 // ゆびで がめんを おして うごかすと、しゅじんこうが ぼくじょうを あるく。
-// じはんき・ひつじの さく・レースかいじょう・スタッフに ちかづくと
-// ボタンが でて、そこで できることを えらべる。
+// じはんき・ひつじの さく・レースかいじょう・スタッフに ちかづくと、したの
+// ボタンが でるほか、その もの じたいを ちょくせつ タップしても はなしかけられる
+// （ちかくに いる ときだけ）。
 import * as S from "./save.js";
 import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
 import { $, show, tap, toast, say, yen } from "./ui.js";
@@ -11,13 +12,19 @@ const VIEW_W = 440, VIEW_H = 704;      // がめんに うつる ぶん（index.
 const SPEED = 165;                     // 1びょうに あるく きょり
 const STICK_MAX = 58;                  // ゆびを うごかす さいだい（ピクセル）
 
-// いける ばしょ
+// いける ばしょ。hit は「がめんを タップしたとき、ここに あたったら はんのう する」
+// という はんい（ワールドざひょう）。r は「ここまで ちかづいたら はなしかけられる」きょり。
 export const SPOTS = [
-  { id:"pen",   x:172, y:470, r:120, name:"ひつじの さく",     act:"あいさつする" },
-  { id:"race",  x:360, y:170, r:130, name:"レースかいじょう",   act:"はいる" },
-  { id:"shop",  x:503, y:672, r:88,  name:"エサの じはんき",   act:"かう" },
-  { id:"gacha", x:628, y:790, r:82,  name:"ガチャ",            act:"まわす" },
-  { id:"staff", x:246, y:742, r:82,  name:"スタッフの おねえさん", act:"はなす" },
+  { id:"pen",   x:172, y:470, r:120, name:"ひつじの さく",     act:"あいさつする",
+    hit:{ x:44,  y:330, w:258, h:200 } },
+  { id:"race",  x:360, y:170, r:130, name:"レースかいじょう",   act:"はいる",
+    hit:{ x:236, y:0,   w:248, h:212 } },
+  { id:"shop",  x:503, y:672, r:88,  name:"エサの じはんき",   act:"かう",
+    hit:{ x:446, y:590, w:114, h:108 } },
+  { id:"gacha", x:628, y:790, r:82,  name:"ガチャ",            act:"まわす",
+    hit:{ x:578, y:716, w:96,  h:104 } },
+  { id:"staff", x:246, y:742, r:82,  name:"スタッフの おねえさん", act:"はなす",
+    hit:{ x:214, y:678, w:66,  h:80 } },
 ];
 
 // とおれない ばしょ
@@ -89,12 +96,35 @@ function flowers(x, y, n, c){
   return s;
 }
 
-function worldSVG(d){
-  let fence = "";
-  for (let x = 52; x <= 294; x += 24) fence += `<rect x="${x}" y="376" width="6" height="150" rx="3" fill="#f3ead6"/>`;
-  fence += `<rect x="46" y="384" width="256" height="7" rx="3.5" fill="#fffaf0"/>
-            <rect x="46" y="470" width="256" height="7" rx="3.5" fill="#fffaf0"/>`;
+// ひくい さく（コラル）。ろうやみたいに ならないよう、ふちを ぐるっと
+// かこむ ひくい てすりに して、なかの ひつじが よく 見えるようにする
+function corralFence(x, y, w, h){
+  const postH = 15, spacing = 30;
+  let posts = "";
+  const post = (px, py) =>
+    `<rect x="${(px - 2.5).toFixed(1)}" y="${(py - postH).toFixed(1)}" width="5" height="${postH}" rx="2" fill="#f3ead6"/>`;
+  for (let px = x; px <= x + w + 0.1; px += spacing) posts += post(px, y) + post(px, y + h);
+  for (let py = y + spacing; py < y + h; py += spacing) posts += post(x, py) + post(x + w, py);
+  const rails = `
+    <rect x="${x - 3}" y="${y - 5}" width="${w + 6}" height="4" rx="2" fill="#fffaf0"/>
+    <rect x="${x - 3}" y="${y + h + 1}" width="${w + 6}" height="4" rx="2" fill="#fffaf0"/>
+    <rect x="${x - 5}" y="${y - 3}" width="4" height="${h + 6}" rx="2" fill="#fffaf0"/>
+    <rect x="${x + w + 1}" y="${y - 3}" width="4" height="${h + 6}" rx="2" fill="#fffaf0"/>`;
+  return posts + rails;
+}
 
+// レースかいじょうの ゲートの おくに、ちいさく 見える レーストラック
+function distantTrack(){
+  return `
+    <ellipse cx="360" cy="40" rx="150" ry="36" fill="#8fce78"/>
+    <ellipse cx="360" cy="40" rx="140" ry="29" fill="#d9b381"/>
+    <ellipse cx="360" cy="40" rx="137" ry="26" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".5"/>
+    <ellipse cx="360" cy="40" rx="66" ry="12" fill="#7bd06a"/>
+    <rect x="234" y="20" width="8" height="10" rx="2" fill="#ff8fb4"/>
+    <rect x="478" y="20" width="8" height="10" rx="2" fill="#7fc7ff"/>`;
+}
+
+function worldSVG(d){
   return `
   <rect x="-40" y="-40" width="${W + 80}" height="${H + 80}" fill="#9ddc84"/>
   <ellipse cx="120" cy="180" rx="150" ry="90" fill="#a8e392"/>
@@ -112,7 +142,8 @@ function worldSVG(d){
   <ellipse cx="612" cy="212" rx="74" ry="46" fill="#8fd3ff"/>
   <ellipse cx="612" cy="212" rx="74" ry="46" fill="none" stroke="#fff" stroke-width="4" opacity=".6"/>
 
-  <!-- レースかいじょうの ゲート -->
+  <!-- レースかいじょうの ゲート（おくに トラックが 見える）-->
+  ${distantTrack()}
   <rect x="250" y="92" width="220" height="34" rx="10" fill="#e0625e"/>
   <text x="360" y="116" text-anchor="middle" class="gatetxt">レースかいじょう</text>
   <rect x="248" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
@@ -120,13 +151,13 @@ function worldSVG(d){
   <g class="flagl"><polygon points="258,86 258,62 292,74" fill="#ffd45e"/></g>
   <g class="flagr"><polygon points="462,86 462,62 428,74" fill="#ffd45e"/></g>
 
-  <!-- ひつじの さく -->
+  <!-- ひつじの さく（ひくい コラルで まわりを かこむ）-->
   <rect x="52" y="376" width="242" height="150" rx="10" fill="#b6e8a0"/>
   ${flowers(70, 500, 6, "#ff8fb4")}
   <g id="penSheep"></g>
-  ${fence}
-  <rect x="120" y="340" width="112" height="26" rx="13" fill="#fff" opacity=".9"/>
-  <text x="176" y="358" text-anchor="middle" class="signtxt">ひつじの さく</text>
+  ${corralFence(52, 376, 242, 150)}
+  <rect x="120" y="336" width="112" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="176" y="354" text-anchor="middle" class="signtxt">ひつじの さく</text>
 
   <!-- なや -->
   <polygon points="462,352 558,300 654,352" fill="#f7f7f7"/>
@@ -278,11 +309,34 @@ function step(dt){
   }
 }
 
-/* ---------- ゆびで うごかす ---------- */
+/* ---------- ゆびで うごかす／タップで はなしかける ---------- */
+// がめんの ざひょうを ワールドの ざひょうに なおす（カメラの ずれも けいさんに いれる）
+function screenToWorld(clientX, clientY){
+  const svg = document.querySelector(".mapsvg");
+  const world = $("#mapWorld");
+  if (!svg || !world) return null;
+  const ctm = world.getScreenCTM();
+  if (!ctm) return null;
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const p = pt.matrixTransform(ctm.inverse());
+  return { x: p.x, y: p.y };
+}
+
+function hitTest(wx, wy){
+  for (const sp of SPOTS){
+    const h = sp.hit;
+    if (h && wx >= h.x && wx <= h.x + h.w && wy >= h.y && wy <= h.y + h.h) return sp;
+  }
+  return null;
+}
+
 function bindStick(){
   const area = $("#mapArea");
   if (area.dataset.bound) return;
   area.dataset.bound = "1";
+
+  let down = null;   // { x, y, t, moved } ゆびを おいた ときの じょうほう
 
   const setVec = (e) => {
     if (!st.origin) return;
@@ -298,14 +352,39 @@ function bindStick(){
 
   area.addEventListener("pointerdown", (e) => {
     e.preventDefault();
+    down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0 };
     st.origin = { x: e.clientX, y: e.clientY };
     showStick(e.clientX, e.clientY);
     area.setPointerCapture && area.setPointerCapture(e.pointerId);
     setVec(e);
   });
-  area.addEventListener("pointermove", (e) => { if (st.origin) setVec(e); });
-  ["pointerup", "pointercancel", "pointerleave"].forEach(ev =>
-    area.addEventListener(ev, () => { st.origin = null; st.vx = st.vy = 0; hideStick(); }));
+  area.addEventListener("pointermove", (e) => {
+    if (down) down.moved = Math.max(down.moved, Math.hypot(e.clientX - down.x, e.clientY - down.y));
+    if (st.origin) setVec(e);
+  });
+  area.addEventListener("pointerup", (e) => {
+    // ほとんど うごかさずに はなしたら、ドラッグでは なく「タップ」とみなす
+    const wasTap = down && down.moved < 14 && performance.now() - down.t < 400;
+    st.origin = null; st.vx = st.vy = 0; hideStick();
+    if (wasTap) handleTap(e.clientX, e.clientY);
+    down = null;
+  });
+  ["pointercancel", "pointerleave"].forEach(ev =>
+    area.addEventListener(ev, () => { st.origin = null; st.vx = st.vy = 0; hideStick(); down = null; }));
+}
+
+function handleTap(clientX, clientY){
+  const w = screenToWorld(clientX, clientY);
+  if (!w) return;
+  const sp = hitTest(w.x, w.y);
+  if (!sp) return;
+  if (st.near && st.near.id === sp.id){
+    // したの ボタンと おなじ どうさを おこす
+    $("#actBtn").click();
+  } else {
+    tap();
+    toast(`${sp.name}に もっと ちかづいてね`);
+  }
 }
 
 function showStick(x, y){
