@@ -18,7 +18,7 @@ try { muted = localStorage.getItem("makainoMute") === "1"; } catch (e) {}
 export function setMuted(v){
   muted = v;
   try { localStorage.setItem("makainoMute", v ? "1" : "0"); } catch (e) {}
-  if (v) stopMusic();
+  if (v) { stopMusic(); stopFarmMusic(); }
 }
 
 function ensureCtx(){
@@ -104,6 +104,44 @@ function beat(t){
   g.gain.exponentialRampToValueAtTime(0.0005, t + 0.045);
   o.connect(g); g.connect(actx.destination);
   o.start(t); o.stop(t + 0.06);
+}
+
+/* ---- ぼくじょうの BGM ----
+   まったり した のんびりメロディを、レースの おんがくとは べつに ループする。
+   マップがめんに いる あいだだけ ならす。 */
+const FARM_MELODY = [
+  "C4","","E4","","G4","","E4","",
+  "A4","","G4","","E4","","D4","",
+  "C4","","D4","","E4","","D4","",
+  "C4","","","","G3","","","",
+];
+const FARM_BASS = [
+  "C3","","","","","","","",
+  "F2","","","","","","","",
+  "G2","","","","","","","",
+  "C3","","","","","","","",
+];
+const FARM_BPM = 78;
+
+let fTimer = 0, fStep = 0, fNext = 0, fOn = false;
+
+export function startFarmMusic(){
+  stopFarmMusic();
+  if (muted || !ensureCtx()) return;
+  fOn = true; fStep = 0; fNext = actx.currentTime + 0.15;
+  fTimer = setInterval(tickFarm, 90);
+}
+export function stopFarmMusic(){ fOn = false; clearInterval(fTimer); fTimer = 0; }
+
+function tickFarm(){
+  if (!fOn || !actx) return;
+  const step = 30 / FARM_BPM;
+  while (fNext < actx.currentTime + 0.35){
+    const i = fStep % FARM_MELODY.length;
+    voice(FARM_MELODY[i], fNext, step * 1.7, "sine",     0.05);
+    voice(FARM_BASS[i],   fNext, step * 3.0, "triangle", 0.045);
+    fNext += step; fStep++;
+  }
 }
 
 /* ---- かんせい（ざわざわ・わーっ）----

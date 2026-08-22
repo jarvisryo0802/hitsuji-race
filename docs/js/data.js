@@ -6,7 +6,7 @@ export const ALLOWANCE    = 300;   // まいにち もらえる おこづかい
 export const CARE_PER_DAY = 3;     // 1日に できる おせわの かず
 export const RACE_PER_DAY = 1;     // 1日に でられる レースの かず
 export const GACHA_PRICE  = 300;   // ガチャ 1かいの ねだん
-export const LAPS         = 2;     // レースの しゅうかいすう
+export const LAPS         = 1;     // レースの しゅうかいすう（おおきな コースを 1しゅう）
 // コーナーの げんそくや ばてる ぶんが あるので、じっさいは この 1.1ばい くらいに なる
 export const RACE_SECONDS = 30;    // レース1かいの めやす（びょう）
 export const RUNNERS      = 4;     // レースに でる ひつじの かず（じぶん＋ライバル）

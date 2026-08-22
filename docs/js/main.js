@@ -3,7 +3,7 @@ import { MY_COLORS, NAME_IDEAS, ALLOWANCE, GACHA_PRICE, findFood } from "./data.
 import * as S from "./save.js";
 import { sheepSVG } from "./sheep.js";
 import { $, $$, show, current, tap, coin, toast, dialog, say, muted, setMuted, yen,
-         startMusic } from "./ui.js";
+         startMusic, startFarmMusic } from "./ui.js";
 import * as F from "./farm.js";
 import * as R from "./race.js";
 import * as M from "./map.js";
@@ -254,6 +254,7 @@ function wire(){
     if (!muted){
       tap();
       if (current() === "race") startMusic();
+      if (current() === "map") startFarmMusic();
     }
   };
 

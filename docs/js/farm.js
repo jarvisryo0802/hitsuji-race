@@ -146,9 +146,9 @@ function feedScene(id){
         <text id="feedMark" x="0" y="0" class="feedmark" opacity="0">！</text>
         ${fenceFront()}
         <g id="feedHand" opacity="0">
-          <path d="M356,260 L350,214 Q322,188 292,176" stroke="#f6d3ae" stroke-width="28"
+          <path id="feedArm" d="M356,260 L350,214 Q322,188 292,176" stroke="#f6d3ae" stroke-width="28"
                 stroke-linecap="round" fill="none"/>
-          <circle cx="276" cy="173" r="18" fill="#f6d3ae"/>
+          <circle id="feedPalm" cx="276" cy="173" r="18" fill="#f6d3ae"/>
           <text id="feedFood" x="256" y="172" text-anchor="middle" class="feedfood">${f.icon}</text>
         </g>
       </svg>
@@ -157,35 +157,55 @@ function feedScene(id){
       <button class="btn big" id="feedBtn">${f.icon} エサを みせる</button>
     </div>`;
 
+  const svgEl  = $(".feedsvg");
   const sheepG = $("#feedSheep");
   const body   = sheepG.querySelector(".body");
   const legs   = [...sheepG.querySelectorAll(".lg1,.lg2,.lg3,.lg4")];
   const hand   = $("#feedHand");
+  const arm    = $("#feedArm");
+  const palm   = $("#feedPalm");
   const mark   = $("#feedMark");
   const foodEl = $("#feedFood");
   const btn    = $("#feedBtn");
   const msg    = $("#feedMsg");
 
-  let stage = "call";          // call → coming → hold → eat → done
-  let walk = 0, eat = 0, gait = 0, holding = false, releases = 0, munchT = 0;
+  // てを ひだり・みぎに うごかすと、ひつじが おいかけてくる。
+  // ちかづけて しばらく もっていると たべる。とおざけると にげられる（もういちど！）
+  const HAND_BASE = 276, HAND_MIN = 90, HAND_MAX = 310;
+  const SHEEP_MIN = 90,  SHEEP_MAX = 300, CHASE_SPEED = 150, EAT_RADIUS = 26;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  let stage = "call";          // call → coming → play → done
+  let walk = 0, eat = 0, gait = 0, munchT = 0, strays = 0, wasClose = false;
+  let handX = HAND_BASE, sheepX = NEAR.x, dragging = false;
   let raf = 0, timer = 0, last = performance.now(), alive = true;
 
   const ease = (k) => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
+  function drawHand(){
+    const dx = handX - HAND_BASE;
+    arm.setAttribute("d",
+      `M356,260 L${(350 + dx * 0.15).toFixed(1)},214 Q${(322 + dx * 0.55).toFixed(1)},188 ${(292 + dx * 0.85).toFixed(1)},176`);
+    palm.setAttribute("cx", handX.toFixed(1));
+    foodEl.setAttribute("x", (handX - 20).toFixed(1));
+  }
+
   function draw(){
     const k = ease(Math.min(1, walk));
-    const eating = stage === "eat" && holding;
-    const lean = (stage === "eat" || stage === "done") ? 6 : 0;    // エサに むかって のりだす
-    const x = FAR.x + (NEAR.x - FAR.x) * k + lean;
+    const playing = stage === "play" || stage === "done";
+    const close = playing && Math.abs(sheepX - handX) < EAT_RADIUS;
+    const lean = close ? 6 : 0;                 // エサに むかって のりだす
+    const baseX = playing ? sheepX : (FAR.x + (NEAR.x - FAR.x) * k);
+    const x = baseX + lean;
     const y = FAR.y + (NEAR.y - FAR.y) * k;
     const s = FAR.s + (NEAR.s - FAR.s) * k;
     sheepG.setAttribute("transform",
       `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s.toFixed(3)}) translate(${-FOOT_X},${-FOOT_Y})`);
 
-    const moving = stage === "coming";
+    const moving = stage === "coming" || (stage === "play" && Math.abs(sheepX - handX) >= 3);
     // もぐもぐ しているときは あたまを 小さく うえした させる
-    const bob = moving ? Math.sin(gait * 2) * 2 : (eating ? Math.sin(gait * 3) * 2 : 0);
-    const tilt = eating ? Math.sin(gait * 3) * 4 + 3 : 0;
+    const bob = moving ? Math.sin(gait * 2) * 2 : (close ? Math.sin(gait * 3) * 2 : 0);
+    const tilt = close ? Math.sin(gait * 3) * 4 + 3 : 0;
     body.setAttribute("transform", `translate(0 ${bob.toFixed(2)}) rotate(${tilt.toFixed(1)} 64 58)`);
     for (let i = 0; i < legs.length; i++){
       const a = moving ? Math.sin(gait + LEG_PHASE[i]) * 21 : 0;
@@ -193,6 +213,7 @@ function feedScene(id){
     }
     mark.setAttribute("x", (x + 4).toFixed(1));
     mark.setAttribute("y", (y - 74 * s).toFixed(1));
+    drawHand();
   }
 
   function step(ts){
@@ -205,22 +226,30 @@ function feedScene(id){
       gait += dt * 13;
       walk += dt / 3.2;                         // 3.2びょう かけて ちかづく
       if (walk >= 1){
-        walk = 1; stage = "hold";
-        msg.innerHTML = `${d.name}が やってきた！<br><b>ボタンを ながおし</b>して たべさせよう`;
-        btn.textContent = "ながおしして たべさせる";
-        btn.classList.add("green");
+        walk = 1; stage = "play"; sheepX = NEAR.x;
+        msg.innerHTML = `${d.name}が やってきた！<br>ゆびで うごかして <b>ちかづけて</b> あげよう`;
         $("#eatBarWrap").classList.remove("hide");
         baa();
       }
-    } else if (stage === "eat"){
-      if (holding){
-        gait += dt * 12;
-        eat += dt / 2.4;                        // 2.4びょうで たべおわる
+    } else if (stage === "play"){
+      // ひつじが エサ（て）を おいかける
+      const diff = handX - sheepX;
+      sheepX = clamp(sheepX + clamp(diff, -CHASE_SPEED * dt, CHASE_SPEED * dt), SHEEP_MIN, SHEEP_MAX);
+      const close = Math.abs(sheepX - handX) < EAT_RADIUS;
+      gait += dt * (close ? 4 : 12);
+
+      if (close){
+        eat += dt / 2.2;
         munchT -= dt;
         if (munchT <= 0){ munchT = 0.26; munch(); }
         $("#eatBar").style.width = Math.min(100, eat * 100) + "%";
         foodEl.setAttribute("font-size", (30 - 22 * Math.min(1, eat)).toFixed(1));
+        if (!wasClose) msg.textContent = "もぐもぐ たべてるよ…";
+        wasClose = true;
         if (eat >= 1){ stage = "done"; finish(); return; }
+      } else {
+        if (wasClose && eat > 0.03){ strays++; msg.textContent = "あ！ にげちゃった〜　もういちど ちかづけよう"; }
+        wasClose = false;
       }
     }
 
@@ -234,7 +263,7 @@ function feedScene(id){
   function finish(){
     stop();
     hand.setAttribute("opacity", "0");
-    const perfect = releases === 0;
+    const perfect = strays === 0;
     const gained = S.grow(f.up, hit ? 2 : 1);
     if (hit){ S.grow({ love: 2 }); gained.love = (gained.love || 0) + 2; }
     if (perfect){ S.grow({ love: 1 }); gained.love = (gained.love || 0) + 1; }
@@ -246,7 +275,7 @@ function feedScene(id){
       ? `だいせいこう！ たべたかった <b>${f.name}</b> だった！`
       : `${f.name} を もぐもぐ たべたよ。`;
     const extra = `<div class="eat">${face}</div><p class="note">${line}${
-      perfect ? "<br>いちども てを はなさずに あげられた！" : ""}</p>`;
+      perfect ? "<br>にげられずに あげきれた！" : ""}</p>`;
     finishCare(`${f.name}を あげた`, gained, extra);
   }
 
@@ -257,25 +286,29 @@ function feedScene(id){
     mark.setAttribute("opacity", "1");
     setTimeout(() => mark.setAttribute("opacity", "0"), 1200);
     msg.textContent = `${d.name}が きづいた！ こっちに くるよ…`;
-    btn.disabled = true;
+    btn.classList.add("hide");
     baa();
-    setTimeout(() => { btn.disabled = false; }, 3200);
   };
 
-  // ながおしで たべさせる
-  btn.addEventListener("pointerdown", (e) => {
-    if (stage !== "hold" && stage !== "eat") return;
-    e.preventDefault();
-    if (stage === "hold") stage = "eat";
-    holding = true;
-    msg.textContent = "そのまま もっていてね…";
+  // ゆびで がめんを うごかして てを うごかす（フリック／ドラッグ）
+  function pointToX(clientX){
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX; pt.y = 0;
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) return handX;
+    return pt.matrixTransform(ctm.inverse()).x;
+  }
+  svgEl.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    svgEl.setPointerCapture && svgEl.setPointerCapture(e.pointerId);
+    handX = clamp(pointToX(e.clientX), HAND_MIN, HAND_MAX);
   });
-  const release = () => {
-    if (stage !== "eat" || !holding) return;
-    holding = false; releases++;
-    msg.textContent = "あれ？ もういちど ながおししてね";
-  };
-  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, release));
+  svgEl.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    handX = clamp(pointToX(e.clientX), HAND_MIN, HAND_MAX);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev =>
+    svgEl.addEventListener(ev, () => { dragging = false; }));
 
   draw();
   raf = requestAnimationFrame(step);
@@ -291,7 +324,8 @@ export function careBrush(){
 
   $("#careStage").innerHTML = `
     <p class="stagettl">よごれを ぜんぶ タップしよう！</p>
-    <p class="hintline">のこり <b id="dirtLeft">${N}</b>こ　じかん <b id="brushTime">10.0</b>びょう</p>
+    <p class="hintline">のこり <b id="dirtLeft">${N}</b>こ</p>
+    <div class="timebar" id="brushTimeWrap"><i id="brushTimeBar"></i></div>
     <div class="brusharea" id="brushArea">
       <div class="brushsheep">${sheepSVG(d.color)}</div>
     </div>`;
@@ -320,8 +354,12 @@ export function careBrush(){
   const timer = setInterval(() => {
     t -= 0.1;
     if (t <= 0){ t = 0; end(); }
-    const el = $("#brushTime");
-    if (el) el.textContent = t.toFixed(1);
+    const bar = $("#brushTimeBar");
+    if (bar){
+      const pct = Math.max(0, (t / 10) * 100);
+      bar.style.width = pct + "%";
+      $("#brushTimeWrap").classList.toggle("warn", pct < 30);
+    }
   }, 100);
 
   function end(){

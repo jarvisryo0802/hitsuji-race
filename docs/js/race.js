@@ -9,13 +9,21 @@ import { $, show, sound, tap, good, bad, fanfare, confetti, toast, yen,
          startMusic, stopMusic, setTempo, cheer } from "./ui.js";
 
 /* ---------- コースの かたち ---------- */
-// よこに ながい だえん。ひつじは よこむきの えなので、よこに はしるほうが
+// 1がめんには おさまらない、よこに ながーい だえん（はじから はじまで
+// がめん 3つぶんくらい）。じぶんの ひつじを おいかけて カメラが よこに
+// スクロールする。ひつじは よこむきの えなので、よこに はしるほうが
 // はしって いるように 見える。カーブは ひだり(25%)と みぎ(75%)の はし。
-const CX = 170, CY = 268;          // コースの まんなか
+const CX = 520, CY = 200;          // コースの まんなか（ワールドざひょう）
 const LANE = [                     // そとがわ から うちがわ へ 4レーン（ゆったり）
-  { rx:134, ry:104 }, { rx:120, ry:92 }, { rx:106, ry:80 }, { rx:92, ry:68 },
+  { rx:460, ry:112 }, { rx:444, ry:100 }, { rx:428, ry:88 }, { rx:412, ry:76 },
 ];
-const Y_TOP = CY - 104, Y_BOT = CY + 104;
+const Y_TOP = CY - LANE[0].ry, Y_BOT = CY + LANE[0].ry;
+const TRACK_TAN   = { rx: LANE[0].rx + 16, ry: LANE[0].ry + 14 };
+const TRACK_GREEN = { rx: TRACK_TAN.rx + 8, ry: TRACK_TAN.ry + 8 };
+const INFIELD     = { rx: LANE[3].rx - 16, ry: LANE[3].ry - 24 };
+const GOAL_Y = CY + LANE[0].ry * 0.6;
+const VIEW_W = 340;                       // #trackSvg の viewBox はば と そろえる
+const TRACK_W = 1040;                     // コース ぜんたいの はば（カメラが うごく はんい）
 const SVGNS = "http://www.w3.org/2000/svg";
 
 // したの まんなかから スタートして、ひだり → うえ → みぎ と まわる
@@ -126,48 +134,58 @@ const pick  = (a) => a[Math.floor(Math.random() * a.length)];
 /* =========================================================
    コースを えがく
    ========================================================= */
-// ぼくじょうの けしき（コースの うしろがわ）
-// けしきは わざと viewBox の そとまで のばして、はしに すきまが できないようにする
+// ぼくじょうの けしき（コースの うしろがわ）。ながい コース ぜんたいに
+// とどくよう、はじから はじまで しきつめる。き・なや・いけは いくつか
+// ばしょを かえて くりかえし、みちのりに へんかを つける。
+const WORLD_L = -60, WORLD_R = TRACK_W + 60;
+
 function scenery(){
   let fence = "";
-  for (let x = -60; x < 400; x += 21){
+  for (let x = WORLD_L; x < WORLD_R; x += 21){
     fence += `<rect x="${x}" y="124" width="4.5" height="19" rx="2" fill="#f3ead6"/>`;
   }
+  const trees = [170, 430, 650, 900].map((x, i) =>
+    `<rect x="${x}" y="106" width="${i % 2 ? 5 : 6}" height="${i % 2 ? 16 : 22}" fill="#a5764a"/>
+     <circle cx="${x + (i % 2 ? 2.5 : 3)}" cy="${i % 2 ? 107 : 100}" r="${i % 2 ? 13 : 18}" fill="${i % 2 ? "#72c464" : "#63b85a"}"/>`
+  ).join("");
   return `
-    <rect x="-60" y="126" width="460" height="420" fill="#a9e394"/>
+    <rect x="${WORLD_L}" y="126" width="${WORLD_R - WORLD_L}" height="420" fill="#a9e394"/>
     <ellipse cx="40"  cy="162" rx="130" ry="48" fill="#8ad57a"/>
-    <ellipse cx="285" cy="157" rx="115" ry="42" fill="#7ecb6d"/>
-    <!-- なや -->
+    <ellipse cx="360" cy="157" rx="150" ry="42" fill="#7ecb6d"/>
+    <ellipse cx="760" cy="160" rx="160" ry="46" fill="#8ad57a"/>
+    <!-- なや（スタートの ちかく）-->
     <polygon points="24,100 58,76 92,100" fill="#f7f7f7"/>
     <rect x="31" y="98" width="54" height="30" fill="#e0625e"/>
     <rect x="50" y="112" width="16" height="16" fill="#8b3a3a"/>
     <rect x="94" y="92" width="16" height="36" rx="3" fill="#ece4d4"/>
     <ellipse cx="102" cy="92" rx="8" ry="5.5" fill="#cfc5b2"/>
+    <!-- いけ（みちのりの めじるし）-->
+    <ellipse cx="560" cy="112" rx="46" ry="16" fill="#8fd3ff"/>
+    <ellipse cx="560" cy="112" rx="46" ry="16" fill="none" stroke="#fff" stroke-width="2" opacity=".6"/>
     <!-- き -->
-    <rect x="248" y="106" width="6" height="22" fill="#a5764a"/>
-    <circle cx="251" cy="100" r="18" fill="#63b85a"/>
-    <rect x="292" y="112" width="5" height="16" fill="#a5764a"/>
-    <circle cx="294.5" cy="107" r="13" fill="#72c464"/>
+    ${trees}
     <!-- おうえんの ひとたち -->
     ${crowd()}
     <!-- さく -->
     ${fence}
-    <rect x="-60" y="128" width="460" height="4" rx="2" fill="#fffaf0"/>
-    <rect x="-60" y="137" width="460" height="4" rx="2" fill="#fffaf0"/>`;
+    <rect x="${WORLD_L}" y="128" width="${WORLD_R - WORLD_L}" height="4" rx="2" fill="#fffaf0"/>
+    <rect x="${WORLD_L}" y="137" width="${WORLD_R - WORLD_L}" height="4" rx="2" fill="#fffaf0"/>`;
 }
 
-// さくの むこうで おうえんする ひとたち
+// さくの むこうで おうえんする ひとたち（コースぜんたいに ちらばっている）
 function crowd(){
   const cols = ["#ff8fb4", "#7fc7ff", "#ffd45e", "#a9e0a0", "#c3a4ff", "#ffa87a", "#8fd3ff"];
   let s = "";
-  for (let i = 0; i < 18; i++){
-    const x = -40 + i * 23 + (i % 3) * 3;
-    if (x > 14 && x < 118) continue;              // なやと サイロの ところは あける
+  let i = 0;
+  for (let x = WORLD_L + 20; x < WORLD_R - 20; x += 23){
+    const xx = x + (i % 3) * 3;
+    if (xx > 14 && xx < 118){ i++; continue; }     // なやの ところは あける
     const c = cols[i % cols.length];
-    s += `<g class="fan" style="animation-delay:${(i * 0.11).toFixed(2)}s">
-      <rect x="${x - 4.5}" y="119" width="9" height="14" rx="4" fill="${c}"/>
-      <circle cx="${x}" cy="115" r="4.5" fill="#f6d3ae"/>
+    s += `<g class="fan" style="animation-delay:${((i % 12) * 0.11).toFixed(2)}s">
+      <rect x="${(xx - 4.5).toFixed(1)}" y="119" width="9" height="14" rx="4" fill="${c}"/>
+      <circle cx="${xx.toFixed(1)}" cy="115" r="4.5" fill="#f6d3ae"/>
     </g>`;
+    i++;
   }
   return `<g class="crowd">${s}</g>`;
 }
@@ -182,21 +200,25 @@ function buildTrack(){
         <rect x="3.5" y="3.5" width="3.5" height="3.5" fill="#333"/>
       </pattern>
     </defs>
-    ${scenery()}
-    <ellipse cx="${CX}" cy="${CY}" rx="158" ry="126" fill="#8fce78"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="150" ry="118" fill="#d9b381"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="147" ry="115" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".65"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="#7bd06a"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".65"/>
-    <rect x="${CX - 5}" y="330" width="10" height="44" fill="url(#goalpat)"/>
-    <g id="laneHolder" opacity="0">${lanes}</g>
-    <g id="dustHolder"></g>
-    <g id="runnerHolder"></g>`;
+    <g id="trackWorld">
+      ${scenery()}
+      <ellipse cx="${CX}" cy="${CY}" rx="${TRACK_GREEN.rx}" ry="${TRACK_GREEN.ry}" fill="#8fce78"/>
+      <ellipse cx="${CX}" cy="${CY}" rx="${TRACK_TAN.rx}" ry="${TRACK_TAN.ry}" fill="#d9b381"/>
+      <ellipse cx="${CX}" cy="${CY}" rx="${TRACK_TAN.rx - 3}" ry="${TRACK_TAN.ry - 3}" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".65"/>
+      <ellipse cx="${CX}" cy="${CY}" rx="${INFIELD.rx}" ry="${INFIELD.ry}" fill="#7bd06a"/>
+      <ellipse cx="${CX}" cy="${CY}" rx="${INFIELD.rx}" ry="${INFIELD.ry}" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".65"/>
+      <rect x="${CX - 5}" y="${GOAL_Y}" width="10" height="44" fill="url(#goalpat)"/>
+      <g id="laneHolder" opacity="0">${lanes}</g>
+      <g id="dustHolder"></g>
+      <g id="runnerHolder"></g>
+    </g>`;
 
   const paths = [...$("#laneHolder").querySelectorAll(".lanepath")];
   const holder = $("#runnerHolder");
   st.dust = $("#dustHolder");
   st.holder = holder;
+  st.world = $("#trackWorld");
+  st.camX = -1;
   st.order = "";
   st.racers.forEach((r, i) => {
     r.path = paths[i];
@@ -415,6 +437,7 @@ function update(dt){
     // なまえふだは ひっくりかえらないように もどす
     r.tag.setAttribute("transform", `translate(${FOOT_X},${FOOT_Y - 34}) scale(${face},1)`);
     r.depth = pt.y;
+    r.px = pt.x;
 
     // すなぼこり
     if (!r.finished && dt > 0){
@@ -423,6 +446,16 @@ function update(dt){
         r.puffT = 0.13;
         puff(pt.x - face * 9 * s, pt.y - 1, s);
       }
+    }
+  }
+
+  // カメラは じぶんの ひつじを おいかけて よこに スクロールする
+  const myPos = st.racers.find(r => r.isPlayer);
+  if (myPos && myPos.px != null && st.world){
+    const camX = Math.max(0, Math.min(TRACK_W - VIEW_W, myPos.px - VIEW_W / 2));
+    if (Math.abs(camX - st.camX) > 0.05){
+      st.camX = camX;
+      st.world.setAttribute("transform", `translate(${(-camX).toFixed(1)},0)`);
     }
   }
 
