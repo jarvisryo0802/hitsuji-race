@@ -119,7 +119,7 @@ GitHub Pages は `main` ブランチの `/docs` フォルダから公開され�
 - `PRIZE` … 賞金
 - `FOODS` / `SKILLS` / `ITEMS` / `GACHA_POOL` … 中身とレア度
 
-**変更したら `docs/precache.json` の `"cache": "makaino-sheep-v6"` の数字を1つ増やしてから push してください。**
+**変更したら `docs/precache.json` の `"cache": "makaino-sheep-v9"` の数字を1つ増やしてから push してください。**
 これを忘れると、ホーム画面に追加済みの端末で古いままになります。
 ファイルを増やしたときは、同じ `precache.json` の `files` にも追加してください。
 
