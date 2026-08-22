@@ -126,93 +126,32 @@ const pick  = (a) => a[Math.floor(Math.random() * a.length)];
 /* =========================================================
    コースを えがく
    ========================================================= */
-// みための ぶひん（グラデーション・かげ）。"rk" を つけて map.js の ものと
-// なまえが かぶらないように している
-function trackDefs(){
-  return `
-  <defs>
-    <pattern id="goalpat" width="7" height="7" patternUnits="userSpaceOnUse">
-      <rect width="7" height="7" fill="#fff"/>
-      <rect width="3.5" height="3.5" fill="#333"/>
-      <rect x="3.5" y="3.5" width="3.5" height="3.5" fill="#333"/>
-    </pattern>
-    <radialGradient id="rkGrass" cx="40%" cy="24%" r="90%">
-      <stop offset="0%" stop-color="#c8f0a4"/>
-      <stop offset="100%" stop-color="#8ad57a"/>
-    </radialGradient>
-    <radialGradient id="rkTrackG" cx="42%" cy="55%" r="42%">
-      <stop offset="0%" stop-color="#9fce7e"/>
-      <stop offset="100%" stop-color="#7bb95d"/>
-    </radialGradient>
-    <radialGradient id="rkDirtG" cx="42%" cy="30%" r="75%">
-      <stop offset="0%" stop-color="#ecceA0"/>
-      <stop offset="100%" stop-color="#cda06a"/>
-    </radialGradient>
-    <radialGradient id="rkInfieldG" cx="45%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#9be085"/>
-      <stop offset="100%" stop-color="#65b654"/>
-    </radialGradient>
-    <linearGradient id="rkRoofG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#dadada"/>
-    </linearGradient>
-    <linearGradient id="rkWallG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f08881"/>
-      <stop offset="100%" stop-color="#cf5751"/>
-    </linearGradient>
-    <linearGradient id="rkSiloG" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#fff9ec"/>
-      <stop offset="100%" stop-color="#c9b993"/>
-    </linearGradient>
-    <linearGradient id="rkFenceG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#fffdf4"/>
-      <stop offset="100%" stop-color="#ecdcb2"/>
-    </linearGradient>
-    <linearGradient id="rkTreeG" x1="0.1" y1="0" x2="0.3" y2="1">
-      <stop offset="0%" stop-color="#7fd06c"/>
-      <stop offset="100%" stop-color="#4c9a43"/>
-    </linearGradient>
-    <linearGradient id="rkTrunkG" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#c08f5c"/>
-      <stop offset="100%" stop-color="#8a5f38"/>
-    </linearGradient>
-    <filter id="rkSoft" x="-60%" y="-40%" width="220%" height="220%">
-      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#1f3018" flood-opacity=".24"/>
-    </filter>
-  </defs>`;
-}
-
 // ぼくじょうの けしき（コースの うしろがわ）
 // けしきは わざと viewBox の そとまで のばして、はしに すきまが できないようにする
 function scenery(){
   let fence = "";
   for (let x = -60; x < 400; x += 21){
-    fence += `<rect x="${x}" y="124" width="4.5" height="19" rx="2" fill="url(#rkFenceG)"/>`;
+    fence += `<rect x="${x}" y="124" width="4.5" height="19" rx="2" fill="#f3ead6"/>`;
   }
   return `
-    <rect x="-60" y="126" width="460" height="420" fill="url(#rkGrass)"/>
-    <ellipse cx="40"  cy="162" rx="130" ry="48" fill="#8ad57a" opacity=".55"/>
-    <ellipse cx="285" cy="157" rx="115" ry="42" fill="#7ecb6d" opacity=".5"/>
+    <rect x="-60" y="126" width="460" height="420" fill="#a9e394"/>
+    <ellipse cx="40"  cy="162" rx="130" ry="48" fill="#8ad57a"/>
+    <ellipse cx="285" cy="157" rx="115" ry="42" fill="#7ecb6d"/>
     <!-- なや -->
-    <g filter="url(#rkSoft)">
-      <polygon points="24,100 58,76 92,100" fill="url(#rkRoofG)"/>
-      <rect x="31" y="98" width="54" height="30" fill="url(#rkWallG)"/>
-      <rect x="50" y="112" width="16" height="16" fill="#8b3a3a"/>
-      <rect x="94" y="92" width="16" height="36" rx="3" fill="url(#rkSiloG)"/>
-      <ellipse cx="102" cy="92" rx="8" ry="5.5" fill="url(#rkRoofG)"/>
-    </g>
-    <rect x="97" y="96" width="4" height="30" rx="2" fill="#fff" opacity=".4"/>
+    <polygon points="24,100 58,76 92,100" fill="#f7f7f7"/>
+    <rect x="31" y="98" width="54" height="30" fill="#e0625e"/>
+    <rect x="50" y="112" width="16" height="16" fill="#8b3a3a"/>
+    <rect x="94" y="92" width="16" height="36" rx="3" fill="#ece4d4"/>
+    <ellipse cx="102" cy="92" rx="8" ry="5.5" fill="#cfc5b2"/>
     <!-- き -->
-    <g filter="url(#rkSoft)">
-      <rect x="248" y="106" width="6" height="22" fill="url(#rkTrunkG)"/>
-      <circle cx="251" cy="100" r="18" fill="url(#rkTreeG)"/>
-      <rect x="292" y="112" width="5" height="16" fill="url(#rkTrunkG)"/>
-      <circle cx="294.5" cy="107" r="13" fill="url(#rkTreeG)"/>
-    </g>
+    <rect x="248" y="106" width="6" height="22" fill="#a5764a"/>
+    <circle cx="251" cy="100" r="18" fill="#63b85a"/>
+    <rect x="292" y="112" width="5" height="16" fill="#a5764a"/>
+    <circle cx="294.5" cy="107" r="13" fill="#72c464"/>
     <!-- おうえんの ひとたち -->
     ${crowd()}
     <!-- さく -->
-    <g filter="url(#rkSoft)">${fence}</g>
+    ${fence}
     <rect x="-60" y="128" width="460" height="4" rx="2" fill="#fffaf0"/>
     <rect x="-60" y="137" width="460" height="4" rx="2" fill="#fffaf0"/>`;
 }
@@ -227,17 +166,46 @@ function crowd(){
     const c = cols[i % cols.length];
     s += `<g class="fan" style="animation-delay:${(i * 0.11).toFixed(2)}s">
       <rect x="${x - 4.5}" y="119" width="9" height="14" rx="4" fill="${c}"/>
-      <rect x="${x - 4.5}" y="119" width="9" height="5" rx="2.5" fill="#fff" opacity=".28"/>
       <circle cx="${x}" cy="115" r="4.5" fill="#f6d3ae"/>
     </g>`;
   }
   return `<g class="crowd">${s}</g>`;
 }
 
-// 1とうぶんの <g class="runner"> を つくる（もじれつの まま かえす）
-function runnerHTML(r){
-  return `
-    <g class="runner${r.isPlayer ? " me" : ""}">
+function buildTrack(){
+  const lanes = LANE.map(l => `<path class="lanepath" d="${ellipsePath(l.rx, l.ry)}"/>`).join("");
+  $("#trackSvg").innerHTML = `
+    <defs>
+      <pattern id="goalpat" width="7" height="7" patternUnits="userSpaceOnUse">
+        <rect width="7" height="7" fill="#fff"/>
+        <rect width="3.5" height="3.5" fill="#333"/>
+        <rect x="3.5" y="3.5" width="3.5" height="3.5" fill="#333"/>
+      </pattern>
+    </defs>
+    ${scenery()}
+    <ellipse cx="${CX}" cy="${CY}" rx="158" ry="126" fill="#8fce78"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="150" ry="118" fill="#d9b381"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="147" ry="115" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".65"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="#7bd06a"/>
+    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".65"/>
+    <rect x="${CX - 5}" y="330" width="10" height="44" fill="url(#goalpat)"/>
+    <g id="laneHolder" opacity="0">${lanes}</g>
+    <g id="dustHolder"></g>
+    <g id="runnerHolder"></g>`;
+
+  const paths = [...$("#laneHolder").querySelectorAll(".lanepath")];
+  const holder = $("#runnerHolder");
+  st.dust = $("#dustHolder");
+  st.holder = holder;
+  st.order = "";
+  st.racers.forEach((r, i) => {
+    r.path = paths[i];
+    r.len  = r.path.getTotalLength();
+    r.gait = Math.random() * 6.3;
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "runner" + (r.isPlayer ? " me" : ""));
+    // あしは CSS ではなく JS で うごかす（えがきなおしで アニメが とまるため）
+    g.innerHTML = `
       <g class="speedlines">
         <rect x="-20" y="26" width="17" height="3" rx="1.5"/>
         <rect x="-27" y="37" width="23" height="3" rx="1.5"/>
@@ -248,44 +216,8 @@ function runnerHTML(r){
         <circle class="badge" cx="6" cy="-4" r="11" fill="#fff" stroke="${r.color}" stroke-width="3.5"/>
         <text class="badgetxt" x="6" y="1" text-anchor="middle">-</text>
         ${r.isPlayer ? `<polygon class="arrow" points="-6,-26 18,-26 6,-14" fill="#ff4f88"/>` : ""}
-      </g>
-    </g>`;
-}
-
-function buildTrack(){
-  const lanes = LANE.map(l => `<path class="lanepath" d="${ellipsePath(l.rx, l.ry)}"/>`).join("");
-  // ★ ひつじを あとから holder.appendChild で つぎたすのではなく、
-  //   さいしょから ぜんいんぶん まとめて 1かいの innerHTML で つくる。
-  //   あとから つぎたすと グラデーションを ブラウザが みうしなう ことが あるため。
-  const runnersHTML = st.racers.map(runnerHTML).join("");
-  // ★ <svg> の ルートに ちょくせつ innerHTML を いれると グラデーションが
-  //   きえる ことが あったので、なかの <g id="trackWorld"> に つめる
-  //   （ぼくじょうの #mapWorld と おなじ かたち に そろえた）
-  $("#trackWorld").innerHTML = `
-    ${trackDefs()}
-    ${scenery()}
-    <ellipse cx="${CX}" cy="${CY}" rx="158" ry="126" fill="url(#rkTrackG)"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="150" ry="118" fill="url(#rkDirtG)"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="147" ry="115" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="9 9" opacity=".65"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="url(#rkInfieldG)"/>
-    <ellipse cx="${CX}" cy="${CY}" rx="76" ry="44" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 8" opacity=".65"/>
-    <ellipse cx="${CX - 20}" cy="${CY - 18}" rx="30" ry="14" fill="#fff" opacity=".16"/>
-    <g filter="url(#rkSoft)"><rect x="${CX - 5}" y="330" width="10" height="44" fill="url(#goalpat)"/></g>
-    <g id="laneHolder" opacity="0">${lanes}</g>
-    <g id="dustHolder"></g>
-    <g id="runnerHolder">${runnersHTML}</g>`;
-
-  const paths = [...$("#laneHolder").querySelectorAll(".lanepath")];
-  const holder = $("#runnerHolder");
-  st.dust = $("#dustHolder");
-  st.holder = holder;
-  st.order = "";
-  const gs = [...holder.children];
-  st.racers.forEach((r, i) => {
-    r.path = paths[i];
-    r.len  = r.path.getTotalLength();
-    r.gait = Math.random() * 6.3;
-    const g = gs[i];
+      </g>`;
+    holder.appendChild(g);
     r.g = g;
     r.body = g.querySelector(".body");
     r.tag  = g.querySelector(".tagwrap");
