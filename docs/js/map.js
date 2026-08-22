@@ -1,43 +1,60 @@
 // ===== ぼくじょうを あるきまわる がめん（とりのめ）=====
 // ゆびで がめんを おして うごかすと、しゅじんこうが ぼくじょうを あるく。
-// じはんき・ひつじの さく・レースかいじょう・スタッフに ちかづくと、したの
-// ボタンが でるほか、その もの じたいを ちょくせつ タップしても はなしかけられる
-// （ちかくに いる ときだけ）。
+// 入口（ひだり した）から みぎへ すすむと、おさんぽ やぎ → 乗馬たいけん →
+// レースかいじょう と つづき、右上に ひつじと ふれあえる さく・じはんきが ある。
+// 羊・じはんき・ガチャ・レースゲート・スタッフに ちかづくと、その もの じたいを
+// ちょくせつ タップして はなしかけられる（したの ボタンからも できる）。
 import * as S from "./save.js";
 import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
 import { $, show, tap, toast, say, yen } from "./ui.js";
 
-const W = 720, H = 1000;               // ぼくじょう ぜんたいの ひろさ
+const W = 900, H = 1150;               // ぼくじょう ぜんたいの ひろさ
 const VIEW_W = 440, VIEW_H = 704;      // がめんに うつる ぶん（index.html の viewBox と そろえる）
 const SPEED = 165;                     // 1びょうに あるく きょり
 const STICK_MAX = 58;                  // ゆびを うごかす さいだい（ピクセル）
 
 // いける ばしょ。hit は「がめんを タップしたとき、ここに あたったら はんのう する」
 // という はんい（ワールドざひょう）。r は「ここまで ちかづいたら はなしかけられる」きょり。
+// staff の x/y/hit は buildMap() の たびに ランダムに きめなおす。
 export const SPOTS = [
-  { id:"pen",   x:172, y:470, r:120, name:"ひつじの さく",     act:"あいさつする",
-    hit:{ x:44,  y:330, w:258, h:200 } },
-  { id:"race",  x:360, y:170, r:130, name:"レースかいじょう",   act:"はいる",
-    hit:{ x:236, y:0,   w:248, h:212 } },
-  { id:"shop",  x:503, y:672, r:88,  name:"エサの じはんき",   act:"かう",
-    hit:{ x:446, y:590, w:114, h:108 } },
-  { id:"gacha", x:628, y:790, r:82,  name:"ガチャ",            act:"まわす",
-    hit:{ x:578, y:716, w:96,  h:104 } },
-  { id:"staff", x:246, y:742, r:82,  name:"スタッフの おねえさん", act:"はなす",
-    hit:{ x:214, y:678, w:66,  h:80 } },
+  { id:"pen",   x:640, y:160, r:120, name:"ひつじの さく",     act:"あいさつする",
+    hit:{ x:512, y:10,  w:258, h:210 } },
+  { id:"race",  x:700, y:430, r:130, name:"レースかいじょう",   act:"はいる",
+    hit:{ x:576, y:260, w:248, h:212 } },
+  { id:"shop",  x:800, y:240, r:88,  name:"エサの じはんき",   act:"かう",
+    hit:{ x:743, y:158, w:114, h:108 } },
+  { id:"gacha", x:230, y:970, r:82,  name:"ガチャ",            act:"まわす",
+    hit:{ x:180, y:896, w:96,  h:104 } },
+  { id:"goats", x:365, y:900, r:100, name:"おさんぽ やぎ",     act:"のぞいてみる",
+    hit:{ x:280, y:800, w:170, h:170 } },
+  { id:"horse", x:540, y:760, r:100, name:"乗馬たいけん",       act:"見学する",
+    hit:{ x:450, y:690, w:180, h:150 } },
+  { id:"staff", x:0,   y:0,   r:82,  name:"スタッフの おねえさん", act:"はなす",
+    hit:{ x:0, y:0, w:66, h:80 } },
+];
+
+// スタッフが けさ どこに いるかは この なかから ランダムに えらぶ
+const STAFF_SPOTS = [
+  { x:250, y:1000 },
+  { x:420, y:920 },
+  { x:600, y:820 },
+  { x:760, y:500 },
+  { x:560, y:210 },
 ];
 
 // とおれない ばしょ
 const SOLID = [
-  { x: 52, y:376, w:242, h:150 },   // ひつじの さく
-  { x:468, y:352, w:180, h:148 },   // なや
-  { x:470, y:628, w: 66, h: 62 },   // じはんき
-  { x:598, y:752, w: 62, h: 60 },   // ガチャ
-  { x:250, y: 92, w:220, h: 34 },   // レースゲートの よこぼう
+  { x:520, y:66,  w:242, h:150 },   // ひつじの さく
+  { x:700, y:10,  w:180, h:155 },   // なや
+  { x:767, y:196, w:66,  h:62 },    // じはんき
+  { x:200, y:932, w:62,  h:60 },    // ガチャ
+  { x:590, y:352, w:220, h:34 },    // レースゲートの よこぼう
+  { x:300, y:850, w:130, h:100 },   // おさんぽ やぎ の さく
+  { x:460, y:705, w:160, h:110 },   // 乗馬たいけんの リング
 ];
 
 const st = {
-  x: 360, y: 900, face: 1, gait: 0,
+  x: 150, y: 1060, face: 1, gait: 0,
   vx: 0, vy: 0, near: null,
   raf: 0, timer: 0, last: 0, on: false,
   stick: null, origin: null,
@@ -77,6 +94,33 @@ function staffArt(){
     <path d="M-3.5,-39 q3.5,3.5 7,0" stroke="#c9736b" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
 }
 
+/* ---------- やぎ・うま の え（かんたん・かるい）---------- */
+function goatArt(x, y, flip = 1){
+  return `<g transform="translate(${x},${y}) scale(${flip},1)">
+    <ellipse cx="0" cy="18" rx="13" ry="3.5" fill="rgba(0,0,0,.15)"/>
+    <rect x="-7" y="2" width="5" height="14" rx="2" fill="#5a5a6e"/>
+    <rect x="3"  y="2" width="5" height="14" rx="2" fill="#5a5a6e"/>
+    <ellipse cx="0" cy="-4" rx="15" ry="11" fill="#f5f1e6"/>
+    <ellipse cx="12" cy="-10" rx="8" ry="7" fill="#f5f1e6"/>
+    <path d="M8,-20 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M14,-19 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="17" cy="-11" r="1.6" fill="#2b2b3a"/>
+  </g>`;
+}
+function horseArt(x, y){
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="0" cy="22" rx="20" ry="4.5" fill="rgba(0,0,0,.15)"/>
+    <rect x="-13" y="2" width="6" height="20" rx="2.5" fill="#8a5f38"/>
+    <rect x="-4"  y="2" width="6" height="20" rx="2.5" fill="#8a5f38"/>
+    <rect x="6"   y="2" width="6" height="20" rx="2.5" fill="#6b4526"/>
+    <rect x="14"  y="2" width="6" height="20" rx="2.5" fill="#6b4526"/>
+    <ellipse cx="0" cy="-6" rx="22" ry="13" fill="#a5764a"/>
+    <ellipse cx="20" cy="-16" rx="10" ry="8" fill="#a5764a"/>
+    <path d="M-4,-24 q10,-8 8,4" fill="#5a3d22"/>
+    <circle cx="25" cy="-17" r="1.8" fill="#2b2b3a"/>
+  </g>`;
+}
+
 /* ---------- ぼくじょうの え ---------- */
 function tree(x, y, s = 1){
   return `<g transform="translate(${x},${y}) scale(${s})">
@@ -97,7 +141,7 @@ function flowers(x, y, n, c){
 }
 
 // ひくい さく（コラル）。ろうやみたいに ならないよう、ふちを ぐるっと
-// かこむ ひくい てすりに して、なかの ひつじが よく 見えるようにする
+// かこむ ひくい てすりに して、なかの どうぶつが よく見えるようにする
 function corralFence(x, y, w, h){
   const postH = 15, spacing = 30;
   let posts = "";
@@ -113,88 +157,131 @@ function corralFence(x, y, w, h){
   return posts + rails;
 }
 
-// レースかいじょうの ゲートの おくに、ちいさく 見える レーストラック
-function distantTrack(){
+// レースかいじょうの ゲート（おくに トラックが 見える）。もとの ずが
+// cx=360,crossbar-y=92 を きじゅんに かいてあるので、あとから
+// <g transform="translate(...)"> で すきな ばしょへ うつす。
+function raceGateArt(){
   return `
     <ellipse cx="360" cy="40" rx="150" ry="36" fill="#8fce78"/>
     <ellipse cx="360" cy="40" rx="140" ry="29" fill="#d9b381"/>
     <ellipse cx="360" cy="40" rx="137" ry="26" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".5"/>
     <ellipse cx="360" cy="40" rx="66" ry="12" fill="#7bd06a"/>
     <rect x="234" y="20" width="8" height="10" rx="2" fill="#ff8fb4"/>
-    <rect x="478" y="20" width="8" height="10" rx="2" fill="#7fc7ff"/>`;
+    <rect x="478" y="20" width="8" height="10" rx="2" fill="#7fc7ff"/>
+    <rect x="250" y="92" width="220" height="34" rx="10" fill="#e0625e"/>
+    <text x="360" y="116" text-anchor="middle" class="gatetxt">レースかいじょう</text>
+    <rect x="248" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
+    <rect x="452" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
+    <g class="flagl"><polygon points="258,86 258,62 292,74" fill="#ffd45e"/></g>
+    <g class="flagr"><polygon points="462,86 462,62 428,74" fill="#ffd45e"/></g>`;
 }
 
-function worldSVG(d){
+// エサの じはんき。もとの ずは x=470,y=628 あたりを きじゅんに かいてある。
+function vendingArt(){
+  return `
+    <rect x="470" y="628" width="66" height="62" rx="8" fill="#3fa3f5"/>
+    <rect x="476" y="634" width="38" height="34" rx="4" fill="#dff1ff"/>
+    <circle cx="484" cy="642" r="4" fill="#ffb02e"/><circle cx="497" cy="642" r="4" fill="#4ec26a"/>
+    <circle cx="484" cy="656" r="4" fill="#ff6b9d"/><circle cx="497" cy="656" r="4" fill="#a97cff"/>
+    <rect x="520" y="634" width="10" height="24" rx="3" fill="#1f6fb0"/>
+    <rect x="476" y="674" width="52" height="10" rx="4" fill="#1f6fb0"/>
+    <rect x="452" y="596" width="104" height="24" rx="12" fill="#fff" opacity=".9"/>
+    <text x="504" y="613" text-anchor="middle" class="signtxt">エサ 100えん〜</text>`;
+}
+
+// ガチャ。もとの ずは x=598,y=752 あたりを きじゅんに かいてある。
+function gachaArt(){
+  return `
+    <rect x="598" y="752" width="62" height="60" rx="8" fill="#a97cff"/>
+    <circle cx="629" cy="772" r="19" fill="#fff" opacity=".92"/>
+    <circle cx="622" cy="768" r="6" fill="#ff8fb4"/><circle cx="636" cy="774" r="6" fill="#ffd45e"/>
+    <circle cx="627" cy="780" r="6" fill="#7fc7ff"/>
+    <circle cx="629" cy="798" r="6" fill="#ffd45e"/>
+    <rect x="584" y="722" width="90" height="24" rx="12" fill="#fff" opacity=".9"/>
+    <text x="629" y="739" text-anchor="middle" class="signtxt">ガチャ 300えん</text>`;
+}
+
+function worldSVG(d, penSheepHTML, staffPos){
+  // ---- しんにゅうこう ちかくの ちいさな カフェふうの やたい ----
+  const stall = `
+    <polygon points="60,940 100,915 140,940" fill="#f7f7f7"/>
+    <rect x="68" y="938" width="64" height="34" rx="4" fill="#f2b4c2"/>
+    <rect x="80" y="950" width="40" height="14" rx="3" fill="#fff"/>`;
+
   return `
   <rect x="-40" y="-40" width="${W + 80}" height="${H + 80}" fill="#9ddc84"/>
-  <ellipse cx="120" cy="180" rx="150" ry="90" fill="#a8e392"/>
-  <ellipse cx="620" cy="520" rx="140" ry="110" fill="#a8e392"/>
+  <ellipse cx="150" cy="200" rx="150" ry="90" fill="#a8e392"/>
+  <ellipse cx="780" cy="620" rx="160" ry="120" fill="#a8e392"/>
 
-  <!-- みち -->
-  <rect x="326" y="150" width="68" height="760" rx="34" fill="#e3c9a0"/>
-  <rect x="150" y="512" width="230" height="56" rx="28" fill="#e3c9a0"/>
-  <rect x="340" y="656" width="200" height="56" rx="28" fill="#e3c9a0"/>
-  <rect x="470" y="686" width="190" height="56" rx="28" fill="#e3c9a0"/>
-  <rect x="230" y="700" width="140" height="54" rx="27" fill="#e3c9a0"/>
-  <ellipse cx="360" cy="880" rx="120" ry="70" fill="#e8d3ad"/>
+  <!-- みち：入口（ひだりした）から おさんぽやぎ → 乗馬たいけん → レース／さく へ -->
+  <g fill="#e3c9a0">
+    <rect x="80"  y="980" width="160" height="140" rx="40"/>
+    <rect x="170" y="860" width="70"  height="200" rx="35"/>
+    <rect x="170" y="860" width="260" height="70"  rx="35"/>
+    <rect x="390" y="740" width="70"  height="200" rx="35"/>
+    <rect x="390" y="740" width="220" height="70"  rx="35"/>
+    <rect x="560" y="470" width="70"  height="340" rx="35"/>
+    <rect x="560" y="470" width="220" height="70"  rx="35"/>
+    <rect x="700" y="150" width="70"  height="400" rx="35"/>
+    <rect x="560" y="150" width="210" height="70"  rx="35"/>
+  </g>
 
-  <!-- いけ -->
-  <ellipse cx="612" cy="212" rx="74" ry="46" fill="#8fd3ff"/>
-  <ellipse cx="612" cy="212" rx="74" ry="46" fill="none" stroke="#fff" stroke-width="4" opacity=".6"/>
+  <!-- いけ（かざり）-->
+  <ellipse cx="180" cy="430" rx="70" ry="44" fill="#8fd3ff"/>
+  <ellipse cx="180" cy="430" rx="70" ry="44" fill="none" stroke="#fff" stroke-width="4" opacity=".6"/>
 
-  <!-- レースかいじょうの ゲート（おくに トラックが 見える）-->
-  ${distantTrack()}
-  <rect x="250" y="92" width="220" height="34" rx="10" fill="#e0625e"/>
-  <text x="360" y="116" text-anchor="middle" class="gatetxt">レースかいじょう</text>
-  <rect x="248" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
-  <rect x="452" y="112" width="20" height="96" rx="8" fill="#c9c1b0"/>
-  <g class="flagl"><polygon points="258,86 258,62 292,74" fill="#ffd45e"/></g>
-  <g class="flagr"><polygon points="462,86 462,62 428,74" fill="#ffd45e"/></g>
+  <!-- レースかいじょうの ゲート（おくに トラック）-->
+  <g transform="translate(340,260)">${raceGateArt()}</g>
+
+  <!-- おさんぽ やぎ（いまは じゅんびちゅう）-->
+  <rect x="300" y="850" width="130" height="100" rx="10" fill="#c3ecab"/>
+  ${corralFence(300, 850, 130, 100)}
+  ${goatArt(345, 905)}
+  ${goatArt(390, 918, -1)}
+  <rect x="308" y="808" width="120" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="368" y="826" text-anchor="middle" class="signtxt">おさんぽ やぎ</text>
+
+  <!-- 乗馬たいけん（いまは じゅんびちゅう）-->
+  <ellipse cx="540" cy="760" rx="85" ry="58" fill="#e3c9a0"/>
+  <ellipse cx="540" cy="760" rx="85" ry="58" fill="none" stroke="#f3ead6" stroke-width="6"/>
+  <ellipse cx="540" cy="760" rx="85" ry="58" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="8 6"/>
+  ${horseArt(540, 760)}
+  <rect x="480" y="682" width="120" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="540" y="700" text-anchor="middle" class="signtxt">乗馬たいけん</text>
 
   <!-- ひつじの さく（ひくい コラルで まわりを かこむ）-->
-  <rect x="52" y="376" width="242" height="150" rx="10" fill="#b6e8a0"/>
-  ${flowers(70, 500, 6, "#ff8fb4")}
-  <g id="penSheep"></g>
-  ${corralFence(52, 376, 242, 150)}
-  <rect x="120" y="336" width="112" height="26" rx="13" fill="#fff" opacity=".9"/>
-  <text x="176" y="354" text-anchor="middle" class="signtxt">ひつじの さく</text>
+  <rect x="520" y="66" width="242" height="150" rx="10" fill="#b6e8a0"/>
+  ${flowers(538, 190, 6, "#ff8fb4")}
+  <g id="penSheep">${penSheepHTML}</g>
+  ${corralFence(520, 66, 242, 150)}
+  <rect x="588" y="26" width="112" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="644" y="44" text-anchor="middle" class="signtxt">ひつじの さく</text>
 
-  <!-- なや -->
-  <polygon points="462,352 558,300 654,352" fill="#f7f7f7"/>
-  <rect x="472" y="348" width="172" height="118" rx="8" fill="#e0625e"/>
-  <rect x="530" y="398" width="56" height="68" rx="6" fill="#8b3a3a"/>
-  <rect x="656" y="330" width="42" height="136" rx="8" fill="#ece4d4"/>
-  <ellipse cx="677" cy="330" rx="21" ry="14" fill="#cfc5b2"/>
+  <!-- なや（かざり）-->
+  <polygon points="712,60 795,14 878,60" fill="#f7f7f7"/>
+  <rect x="722" y="56" width="152" height="104" rx="8" fill="#e0625e"/>
+  <rect x="774" y="100" width="48" height="60" rx="6" fill="#8b3a3a"/>
 
   <!-- エサの じはんき -->
-  <rect x="470" y="628" width="66" height="62" rx="8" fill="#3fa3f5"/>
-  <rect x="476" y="634" width="38" height="34" rx="4" fill="#dff1ff"/>
-  <circle cx="484" cy="642" r="4" fill="#ffb02e"/><circle cx="497" cy="642" r="4" fill="#4ec26a"/>
-  <circle cx="484" cy="656" r="4" fill="#ff6b9d"/><circle cx="497" cy="656" r="4" fill="#a97cff"/>
-  <rect x="520" y="634" width="10" height="24" rx="3" fill="#1f6fb0"/>
-  <rect x="476" y="674" width="52" height="10" rx="4" fill="#1f6fb0"/>
-  <rect x="452" y="596" width="104" height="24" rx="12" fill="#fff" opacity=".9"/>
-  <text x="504" y="613" text-anchor="middle" class="signtxt">エサ 100えん〜</text>
+  <g transform="translate(297,-432)">${vendingArt()}</g>
 
-  <!-- ガチャ -->
-  <rect x="598" y="752" width="62" height="60" rx="8" fill="#a97cff"/>
-  <circle cx="629" cy="772" r="19" fill="#fff" opacity=".92"/>
-  <circle cx="622" cy="768" r="6" fill="#ff8fb4"/><circle cx="636" cy="774" r="6" fill="#ffd45e"/>
-  <circle cx="627" cy="780" r="6" fill="#7fc7ff"/>
-  <circle cx="629" cy="798" r="6" fill="#ffd45e"/>
-  <rect x="584" y="722" width="90" height="24" rx="12" fill="#fff" opacity=".9"/>
-  <text x="629" y="739" text-anchor="middle" class="signtxt">ガチャ 300えん</text>
+  <!-- しんにゅうこう の やたい と ガチャ -->
+  ${stall}
+  <g transform="translate(-398,180)">${gachaArt()}</g>
+  <rect x="60" y="1000" width="120" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="120" y="1018" text-anchor="middle" class="signtxt">まきば ぐち</text>
 
   <!-- き と はな -->
-  ${tree(70, 210)} ${tree(150, 140, .85)} ${tree(660, 620, .9)}
-  ${tree(80, 700, .8)} ${tree(620, 130, .75)} ${tree(120, 880, .9)}
-  ${tree(640, 900, .85)}
-  ${flowers(430, 250, 6, "#ffd45e")}
-  ${flowers(180, 620, 6, "#c3a4ff")}
-  ${flowers(520, 860, 6, "#ff8fb4")}
+  ${tree(70, 120)} ${tree(260, 60, .85)} ${tree(830, 700, .9)}
+  ${tree(60, 700, .8)} ${tree(870, 300, .75)} ${tree(760, 980, .9)}
+  ${tree(220, 1080, .8)} ${tree(470, 620, .8)} ${tree(200, 620, .7)}
+  ${flowers(700, 250, 6, "#ffd45e")}
+  ${flowers(60, 850, 6, "#c3a4ff")}
+  ${flowers(650, 970, 6, "#ff8fb4")}
+  ${flowers(40, 1080, 6, "#ffd45e")}
 
-  <!-- スタッフ -->
-  <g id="npcStaff" transform="translate(246,742)"><g class="npcbob">${staffArt()}</g></g>
+  <!-- スタッフ（ひは ランダムな ばしょに いる）-->
+  <g id="npcStaff" transform="translate(${staffPos.x},${staffPos.y})"><g class="npcbob">${staffArt()}</g></g>
 
   <!-- しゅじんこう -->
   <g id="player"><g class="kidbody">${kidArt()}</g></g>`;
@@ -205,11 +292,20 @@ function worldSVG(d){
    ========================================================= */
 export function buildMap(){
   const d = S.data;
-  $("#mapWorld").innerHTML = worldSVG(d);
-  // さくの なかで じぶんの ひつじが くさを たべている
-  $("#penSheep").innerHTML =
-    `<g transform="translate(200,452) scale(0.86) translate(${-FOOT_X},${-FOOT_Y})">${sheepArt(d.color)}</g>`;
-  st.x = 360; st.y = 900; st.face = 1; st.near = null;
+  // スタッフの きょうの いばしょを ランダムに きめる
+  const staffPos = STAFF_SPOTS[Math.floor(Math.random() * STAFF_SPOTS.length)];
+  const staffSpot = SPOTS.find(s => s.id === "staff");
+  staffSpot.x = staffPos.x; staffSpot.y = staffPos.y;
+  staffSpot.hit = { x: staffPos.x - 33, y: staffPos.y - 62, w: 66, h: 80 };
+
+  // さくの なかで じぶんの ひつじが くさを たべている。
+  // ★ グラデーションが きえないよう、penSheep の なかみは べつどりで あとから
+  //   innerHTML に つめなおすのではなく、さいしょから 1かいの innerHTML で つくる
+  //   （あとから つめなおすと ブラウザが グラデーションを みうしなう ことがある）
+  const penSheepHTML =
+    `<g transform="translate(668,142) scale(0.86) translate(${-FOOT_X},${-FOOT_Y})">${sheepArt(d.color)}</g>`;
+  $("#mapWorld").innerHTML = worldSVG(d, penSheepHTML, staffPos);
+  st.x = 150; st.y = 1060; st.face = 1; st.near = null;
   refreshHud();
 }
 
@@ -261,7 +357,7 @@ function step(dt){
     if (!blocked(nx, st.y)) st.x = nx;
     if (!blocked(st.x, ny)) st.y = ny;
     st.x = Math.max(26, Math.min(W - 26, st.x));
-    st.y = Math.max(150, Math.min(H - 24, st.y));
+    st.y = Math.max(20, Math.min(H - 24, st.y));
     if (Math.abs(st.vx) > 4) st.face = st.vx < 0 ? -1 : 1;
     st.gait += dt * 11;
   } else {

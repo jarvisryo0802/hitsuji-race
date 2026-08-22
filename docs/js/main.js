@@ -129,6 +129,11 @@ async function doSpot(sp){
     await staffTalk();
     return goMap();
   }
+
+  if (sp.id === "goats" || sp.id === "horse"){
+    await say("スタッフの おにいさん", "ここは いま じゅんびちゅうです。<br>もう すこし まっててね！");
+    return goMap();
+  }
   goMap();
 }
 
