@@ -58,22 +58,34 @@ export function renderHorseEntry(){
   };
 }
 
-/* ---------- うまに ひとが のった え（あしは じめんに いるか・とんでいるかで かえる）---------- */
-function mountArt(x, y, jumping){
-  // まえあしも うしろあしも おなじ むきに（うしろへ）おりまげる
-  const back  = jumping ? 52 : 0;
-  const front = jumping ? 52 : 0;
-  return `<g transform="translate(${x},${y})">
-    <ellipse cx="0" cy="24" rx="19" ry="4" fill="rgba(0,0,0,.16)" opacity="${jumping ? 0.35 : 0.75}"/>
+/* ---------- うまに ひとが のった え（あしは じめんに いるか・とんでいるか、
+   はしっている あいだは がいと（あしの しゅうき）で うごかす）---------- */
+function mountArt(x, y, jumping, gait){
+  let back1, back2, front1, front2, bob;
+  if (jumping){
+    // まえあしも うしろあしも おなじ むきに（うしろへ）おりまげる
+    back1 = back2 = front1 = front2 = 52;
+    bob = 0;
+  } else {
+    // はしっている あいだは あしを こうごに ふって、はしっている かんじを だす
+    const amp = 30;
+    back1  = Math.sin(gait) * amp;
+    back2  = Math.sin(gait + 2.6) * amp;
+    front1 = Math.sin(gait + Math.PI) * amp;
+    front2 = Math.sin(gait + Math.PI + 2.6) * amp;
+    bob = Math.abs(Math.sin(gait)) * 2.2;
+  }
+  return `<g transform="translate(${x},${(y - bob).toFixed(2)})">
+    <ellipse cx="0" cy="${(24 + bob).toFixed(2)}" rx="19" ry="4" fill="rgba(0,0,0,.16)" opacity="${jumping ? 0.35 : 0.75}"/>
 
     <!-- しっぽ -->
     <path d="M-23,-10 Q-33,-2 -27,14 Q-25,0 -19,-6 Z" fill="#5a3d22"/>
 
     <!-- うしろあし（こかんせつは からだの したらへん） -->
-    <g transform="rotate(${back} -10 3)">
+    <g transform="rotate(${back1.toFixed(1)} -10 3)">
       <rect x="-13.5" y="3" width="7" height="20" rx="3" fill="#8a5f38"/>
     </g>
-    <g transform="rotate(${back * 0.85} -2.5 3)">
+    <g transform="rotate(${back2.toFixed(1)} -2.5 3)">
       <rect x="-6" y="3" width="7" height="20" rx="3" fill="#8a5f38"/>
     </g>
 
@@ -98,13 +110,13 @@ function mountArt(x, y, jumping){
     <ellipse cx="38.5" cy="-17.5" rx="1.6" ry="1.1" fill="#4a3220"/>
 
     <!-- まえあし（こかんせつは からだの したらへん） -->
-    <g transform="rotate(${front} 7 3)">
+    <g transform="rotate(${front1.toFixed(1)} 7 3)">
       <rect x="4" y="3" width="7" height="20" rx="3" fill="#6b4526"/>
     </g>
-    <g transform="rotate(${front * 0.85} 15 3)">
+    <g transform="rotate(${front2.toFixed(1)} 15 3)">
       <rect x="12" y="3" width="7" height="20" rx="3" fill="#6b4526"/>
     </g>
-  </g>${riderArt(x, y)}`;
+  </g>${riderArt(x, y - bob)}`;
 }
 
 function riderArt(x, y){
@@ -180,7 +192,7 @@ function startGame(){
   const distEl = $("#hDist");
   const livesEl = $("#hLives");
 
-  let distance = 0, misses = 0, alive = true, scrollX = 0;
+  let distance = 0, misses = 0, alive = true, scrollX = 0, gait = 0;
   let y = 0, vy = 0, jumping = false;
   let obstacles = [];
   let spawnGap = 380, scrolledSincePrev = 0, forceLowNext = false, justHadTight = false;
@@ -224,7 +236,7 @@ function startGame(){
   }
 
   function drawHorse(){
-    horseG.innerHTML = mountArt(HORSE_X, GROUND_Y - y, jumping);
+    horseG.innerHTML = mountArt(HORSE_X, GROUND_Y - y, jumping, gait);
   }
   function drawObstacles(){
     // じめんに しっかり めりこませて（+8〜10）、かげも つけて、うくのを ふせぐ
@@ -265,6 +277,7 @@ function startGame(){
 
     const stage = stageFor(distance);
     scrollX += stage.speed * dt;
+    gait += dt * (stage.speed / 22);   // はやいほど あしが はやく うごく
 
     if (jumping){
       vy -= HORSE_GRAVITY * dt;

@@ -311,11 +311,18 @@ html,body{
 @keyframes gfullwarn{ 0%,100%{ filter:brightness(1) } 50%{ filter:brightness(1.35) } }
 .gfullwarn{ position:absolute; right:3px; top:50%; transform:translateY(-50%); font-size:13px;
   text-shadow:0 1px 2px rgba(0,0,0,.4) }
-.ggoalhud{ position:absolute; top:26px; left:8px; z-index:3; display:flex; flex-direction:column;
-  gap:2px; background:rgba(60,58,78,.55); padding:5px 10px; border-radius:12px }
-.ggoaltxt{ font-size:11px; font-weight:900; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.3); white-space:nowrap }
-.ggoalbar{ width:84px; height:6px; background:rgba(255,255,255,.3); border-radius:999px; overflow:hidden }
-.ggoalbar i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffd45e,#8ee07d); transition:width .1s linear }
+/* たてに のびる ゴールまでの トラック。みちくさメーター（うえ・よこ）とは
+   むきも いろも かえて、ひとめで べつの ものだと わかるようにする */
+.ggoalhud{ position:absolute; top:30px; left:8px; z-index:3; display:flex; flex-direction:column;
+  align-items:center; gap:4px; background:rgba(60,58,78,.5); padding:8px 7px 7px; border-radius:14px }
+.ggoalflagtop{ font-size:13px; line-height:1; margin-bottom:-2px }
+.ggoaltrack{ position:relative; width:9px; height:120px; background:rgba(255,255,255,.3);
+  border-radius:999px; overflow:visible }
+.ggoaltrack i{ position:absolute; bottom:0; left:0; display:block; width:100%; height:0%;
+  background:linear-gradient(0deg,#3fa3f5,#7fc7ff); border-radius:999px; transition:height .15s linear }
+.ggoalmark{ position:absolute; left:50%; bottom:0%; transform:translate(-50%,50%); font-size:15px;
+  transition:bottom .15s linear; filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)) }
+.ggoaltxt{ font-size:10.5px; font-weight:900; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.3); white-space:nowrap }
 
 /* ---- じょうばたいけん ---- */
 #horse{ padding:8px 10px 12px; gap:8px; justify-content:flex-start }

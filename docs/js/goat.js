@@ -159,8 +159,9 @@ function startWalk(level){
       </svg>
       <div class="gfullwrap" id="gFullWrap"><i id="gFullBar"></i><span class="gfullwarn">⚠️</span></div>
       <div class="ggoalhud">
-        <span class="ggoaltxt" id="gGoalTxt">0 / ${GOAT_GOAL_M}m</span>
-        <div class="ggoalbar"><i id="gGoalBar"></i></div>
+        <span class="ggoalflagtop">🏁</span>
+        <div class="ggoaltrack"><i id="gGoalFill"></i><span class="ggoalmark" id="gGoalMark">🐐</span></div>
+        <span class="ggoaltxt" id="gGoalTxt">0m</span>
       </div>
     </div>`;
 
@@ -173,7 +174,8 @@ function startWalk(level){
   const playerEl = $("#gPlayer");
   const leashEl = $("#gLeash");
   const goalTxtEl = $("#gGoalTxt");
-  const goalBarEl = $("#gGoalBar");
+  const goalFillEl = $("#gGoalFill");
+  const goalMarkEl = $("#gGoalMark");
   const fullBar = $("#gFullBar");
   const fullWrap = $("#gFullWrap");
 
@@ -250,8 +252,10 @@ function startWalk(level){
 
   function updateHud(){
     const shown = Math.min(GOAT_GOAL_M, Math.floor(distance));
-    goalTxtEl.textContent = `${shown} / ${GOAT_GOAL_M}m`;
-    goalBarEl.style.width = clamp((distance / GOAT_GOAL_M) * 100, 0, 100) + "%";
+    const pct = clamp((distance / GOAT_GOAL_M) * 100, 0, 100);
+    goalTxtEl.textContent = `${shown}m`;
+    goalFillEl.style.height = pct + "%";
+    goalMarkEl.style.bottom = pct + "%";
     fullBar.style.width = clamp(fullness, 0, 100) + "%";
     fullWrap.classList.toggle("warn", fullness > 60);
   }
