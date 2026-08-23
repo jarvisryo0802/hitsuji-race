@@ -68,7 +68,7 @@ export const ITEMS = [
 // ---- おさんぽ やぎ ----
 // ルーレットで レベル(1〜10)が でる おもさ。たかいレベルほど でにくい
 export const goatLevelWeight = (lv) => 11 - lv;
-export const GOAT_SUCCESS_M  = 40;   // これより とおくまで あるけたら「せいこう」で ごほうび
+export const GOAT_GOAL_M     = 40;   // ここまで あるけたら ゴール（せいこうで ごほうび）
 
 // レベルの はんいごとの ごほうび（weight が おおきいほど よく でる）
 export const GOAT_REWARDS = [

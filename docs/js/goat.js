@@ -1,8 +1,7 @@
-// ===== おさんぽ やぎ（ルーレット → みちを はずれないように リードする さんぽ）=====
-import { GOAT_PRICE, GOAT_SUCCESS_M, goatLevelWeight, findGoatRewardPool, findFood, findItem, findSkill } from "./data.js";
+// ===== おさんぽ やぎ（ルーレット → ゴールまで みちを はずれずに リードする さんぽ）=====
+import { GOAT_PRICE, GOAT_GOAL_M, goatLevelWeight, findGoatRewardPool, findFood, findItem, findSkill } from "./data.js";
 import * as S from "./save.js";
 import { goatArt } from "./map.js";
-import { today } from "./save.js";
 import { $, tap, good, bad, sound, toast, confetti, yen, maa, munch } from "./ui.js";
 
 export let backToMap = () => {};
@@ -11,44 +10,21 @@ export function setBackToMap(fn){ backToMap = fn; }
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-/* ---------- ハイスコア（きせつ・日を またいで のこる）---------- */
-const BOARD_KEY = "makainoSheepRaceGoatBoard";
-function loadBoard(){
-  try { return JSON.parse(localStorage.getItem(BOARD_KEY)) || []; } catch (e){ return []; }
-}
-function saveBoard(list){
-  try { localStorage.setItem(BOARD_KEY, JSON.stringify(list.slice(0, 10))); } catch (e) {}
-}
-function addScore(m){
-  const list = loadBoard();
-  list.push({ m: Math.floor(m), d: today() });
-  list.sort((a, b) => b.m - a.m);
-  const top = list.slice(0, 10);
-  saveBoard(top);
-  return top;
-}
-function boardHTML(board){
-  if (!board.length){
-    return `<p class="note center">まだ きろくが ないよ。さいしょの きろくを つくろう！</p>`;
-  }
-  const rows = board.map((b, i) => `
-    <div class="hrow"><span class="hrank">${i + 1}</span><span class="hdist">${b.m}m</span><span class="hdate">${b.d.slice(5)}</span></div>`).join("");
-  return `<div class="hboard"><p class="lbl center">とおくまで ランキング（トップ10）</p>${rows}</div>`;
-}
-
 /* =========================================================
    ① ルーレットで きょう おさんぽする やぎを きめる
    ========================================================= */
 export function renderGoatEntry(){
   $("#goatStage").innerHTML = `
-    <p class="stagettl">ルーレットで おさんぽする やぎを きめよう！</p>
-    <p class="hintline">たかい レベルの やぎほど なかなか でないけど、<br>
-      とおくまで あるけると すごい ごほうびが もらえるよ</p>
-    <div class="groulette" id="groulette">
-      <div class="gwindow"><span id="gLevelBig">Lv1</span></div>
-    </div>
-    <button class="btn big pink" id="gSpinBtn">🎡 <b>${GOAT_PRICE}</b>えんで やぎを よぶ</button>
-    <p class="note center">もっている おかね：💰 ${S.data.money.toLocaleString()}えん</p>`;
+    <div class="card center">
+      <p class="stagettl">ルーレットで おさんぽする やぎを きめよう！</p>
+      <p class="hintline">たかい レベルの やぎほど なかなか でないけど、<br>
+        ゴールまで たどりつけると すごい ごほうびが もらえるよ</p>
+      <div class="groulette" id="groulette">
+        <div class="gwindow"><span id="gLevelBig">Lv1</span></div>
+      </div>
+      <button class="btn big pink" id="gSpinBtn">🎡 <b>${GOAT_PRICE}</b>えんで やぎを よぶ</button>
+      <p class="note center">もっている おかね：💰 ${S.data.money.toLocaleString()}えん</p>
+    </div>`;
   const btn = $("#gSpinBtn");
   btn.disabled = S.data.money < GOAT_PRICE;
   btn.onclick = () => spin();
@@ -109,26 +85,29 @@ function flavorText(level){
 
 function showConfirm(level){
   $("#goatStage").innerHTML = `
-    <div class="gresult">
-      <div class="glevel ${level >= 9 ? "lvrare" : level >= 4 ? "mid" : ""}">Lv.${level}</div>
-      <svg class="gprevsvg" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
-        ${goatArt(60, 78)}
-      </svg>
-      <p class="note center">${flavorText(level)}</p>
-    </div>
-    <button class="btn big green" id="gGoBtn">この やぎと おさんぽ する</button>
-    <button class="btn small gray" id="gBackBtn">やめる</button>`;
+    <div class="card">
+      <div class="gresult">
+        <div class="glevel ${level >= 9 ? "lvrare" : level >= 4 ? "mid" : ""}">Lv.${level}</div>
+        <svg class="gprevsvg" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+          ${goatArt(60, 78)}
+        </svg>
+        <p class="note center">${flavorText(level)}</p>
+        <p class="note center">ゴールまで <b>${GOAT_GOAL_M}m</b></p>
+      </div>
+      <button class="btn big green" id="gGoBtn">この やぎと おさんぽ する</button>
+      <button class="btn small gray" id="gBackBtn">やめる</button>
+    </div>`;
   $("#gGoBtn").onclick = () => startWalk(level);
   $("#gBackBtn").onclick = () => backToMap();
 }
 
 /* =========================================================
-   ② おさんぽ：みちを はずれないように フリック／ドラッグで リードする
+   ② おさんぽ：ゴールまで みちを はずれないように フリック／ドラッグで リードする
    ========================================================= */
-const VIEW_W = 220, VIEW_H = 300, GOAT_Y = 230, PPM = 3;
+const VIEW_W = 240, VIEW_H = 440, GOAT_Y = 270, PPM = 3;
 
 // プレイヤーが やぎに リードを つけて あるいている ように みせる
-const PLAYER_X = 110, PLAYER_Y = GOAT_Y + 55;
+const PLAYER_X = 120, PLAYER_Y = GOAT_Y + 55;
 
 function playerArt(x, y, lean){
   const armRot = -20 + lean * 40;   // ひっぱっている ほうこうへ うでを ふる
@@ -155,10 +134,17 @@ const TUFT = `<path d="M-4,4 Q-3,-6 -1,3" stroke="#5aa83f" stroke-width="2" fill
   <path d="M4,4 Q3,-6 1,3" stroke="#5aa83f" stroke-width="2" fill="none" stroke-linecap="round"/>`;
 
 function startWalk(level){
-  const pathW     = 50 - (level - 1) * 3;                     // みちの はば（せまいほど むずかしい）
-  const wanderA   = 54 + level * 6;                            // やぎが かってに よろける つよさ
-  const baseSpeed = 6.0 + (level - 1) * 0.5;                   // びょうそく（メートル）。はやめ
-  const offRate   = 20 + level * 2.2;                          // みちの そとで メーターが ふえる はやさ
+  const basePathW = 50 - (level - 1) * 3;                      // みちの はば（せまいほど むずかしい）
+  const wanderA   = 54 + level * 6;                             // やぎが かってに よろける つよさ
+  const baseSpeed = 6.0 + (level - 1) * 0.5;                    // びょうそく（メートル）。はやめ
+  const offRate   = 20 + level * 2.2;                           // みちの そとで メーターが ふえる はやさ
+
+  // ゴールに ちかづくほど みちが せまく なる（こうはん50%で さいだい45%まで せばめる）
+  function pathWidthAt(d){
+    const t = clamp(d / GOAT_GOAL_M, 0, 1);
+    const narrow = t > 0.5 ? (t - 0.5) / 0.5 : 0;
+    return basePathW * (1 - narrow * 0.45);
+  }
 
   $("#goatStage").innerHTML = `
     <div class="gwalkwrap" id="gWrap">
@@ -166,34 +152,40 @@ function startWalk(level){
         <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="#9ddc84"/>
         <g id="gGrass"></g>
         <path id="gPath" fill="none" stroke="#e3c9a0" stroke-linecap="round"/>
+        <g id="gGoalLine"></g>
         <g id="gLeash"></g>
         <g id="gPlayer"></g>
         <g id="gWalker"></g>
       </svg>
       <div class="gfullwrap" id="gFullWrap"><i id="gFullBar"></i><span class="gfullwarn">⚠️</span></div>
-      <div class="ghud"><span id="gDist">Lv.${level}・0m</span></div>
+      <div class="ggoalhud">
+        <span class="ggoaltxt" id="gGoalTxt">0 / ${GOAT_GOAL_M}m</span>
+        <div class="ggoalbar"><i id="gGoalBar"></i></div>
+      </div>
     </div>`;
 
   const wrap = $("#gWrap");
   const svg = $("#gWalkSvg");
   const pathEl = $("#gPath");
   const grassEl = $("#gGrass");
+  const goalLineEl = $("#gGoalLine");
   const walker = $("#gWalker");
   const playerEl = $("#gPlayer");
   const leashEl = $("#gLeash");
-  const distEl = $("#gDist");
+  const goalTxtEl = $("#gGoalTxt");
+  const goalBarEl = $("#gGoalBar");
   const fullBar = $("#gFullBar");
   const fullWrap = $("#gFullWrap");
 
   // びっしり サンプリングして、ふとい ストロークで みちを えがく。
   // みちじたいは ゆるやかに するだけ（クネクネの メインは やぎの きまぐれさ）
-  const ROWS = 26;
+  const ROWS = 30;
   function centerX(d){
-    const raw = 110 + Math.sin(d * 0.018) * 22 + Math.sin(d * 0.05 + 1.3) * 8;
-    return clamp(raw, 80, 140);
+    const raw = 120 + Math.sin(d * 0.018) * 24 + Math.sin(d * 0.05 + 1.3) * 9;
+    return clamp(raw, 88, 152);
   }
 
-  let goatX = 110, goatVX = 0, fullness = 0, distance = 0;
+  let goatX = 120, goatVX = 0, fullness = 0, distance = 0;
   let wanderDir = 0, nextWanderAt = 0, elapsed = 0;
   let munchT = 0, lean = 0;
   let alive = true, raf = 0, timer = 0, last = performance.now();
@@ -203,11 +195,12 @@ function startWalk(level){
     for (let i = 0; i <= ROWS; i++){
       const y = (VIEW_H / ROWS) * i;
       const ahead = (GOAT_Y - y) / PPM;
-      const cx = centerX(distance + ahead);
+      const wd = distance + ahead;
+      const cx = centerX(wd);
       d += (i ? "L" : "M") + cx.toFixed(1) + "," + y.toFixed(1);
     }
     pathEl.setAttribute("d", d);
-    pathEl.setAttribute("stroke-width", pathW);
+    pathEl.setAttribute("stroke-width", pathWidthAt(distance).toFixed(1));
   }
 
   // すすんだ きょりに ひもづけて くさむらを えがく（せかいざひょうなので
@@ -216,18 +209,35 @@ function startWalk(level){
     const stepWorld = 16;
     const minD = distance - (VIEW_H - GOAT_Y) / PPM - 10;
     const maxD = distance + GOAT_Y / PPM + 10;
+    const pw = pathWidthAt(distance);
     let s = "";
     for (let d0 = Math.floor(minD / stepWorld) * stepWorld; d0 <= maxD; d0 += stepWorld){
       if (hash(d0) > 0.5) continue;
       const side = hash(d0 + 1000) < 0.5 ? -1 : 1;
       const cx = centerX(d0);
-      const off = pathW / 2 + 8 + hash(d0 + 2000) * 24;
+      const off = pw / 2 + 8 + hash(d0 + 2000) * 24;
       const tx = clamp(cx + side * off, 6, VIEW_W - 6);
       const ty = GOAT_Y - (d0 - distance) * PPM;
       if (ty < -10 || ty > VIEW_H + 10) continue;
       s += `<g transform="translate(${tx.toFixed(1)},${ty.toFixed(1)})">${TUFT}</g>`;
     }
     grassEl.innerHTML = s;
+  }
+
+  // ゴールの バナー（チェックもよう）を せかいざひょうに おいて えがく
+  function drawGoalLine(){
+    const ty = GOAT_Y - (GOAT_GOAL_M - distance) * PPM;
+    if (ty < -40 || ty > VIEW_H + 40){ goalLineEl.innerHTML = ""; return; }
+    const cx = centerX(GOAT_GOAL_M);
+    const w = pathWidthAt(GOAT_GOAL_M) + 14;
+    const n = 6;
+    let squares = "";
+    for (let i = 0; i < n; i++){
+      const sx = cx - w / 2 + (w / n) * i;
+      squares += `<rect x="${sx.toFixed(1)}" y="${(ty - 5).toFixed(1)}" width="${(w / n).toFixed(1)}" height="10"
+        fill="${i % 2 === 0 ? '#3c3a4e' : '#fff'}"/>`;
+    }
+    goalLineEl.innerHTML = `${squares}<text x="${cx.toFixed(1)}" y="${(ty - 10).toFixed(1)}" text-anchor="middle" class="ggoalflag">🏁 ゴール</text>`;
   }
 
   function drawGoat(face, grazing){
@@ -239,7 +249,9 @@ function startWalk(level){
   }
 
   function updateHud(){
-    distEl.textContent = `Lv.${level}・${Math.floor(distance)}m`;
+    const shown = Math.min(GOAT_GOAL_M, Math.floor(distance));
+    goalTxtEl.textContent = `${shown} / ${GOAT_GOAL_M}m`;
+    goalBarEl.style.width = clamp((distance / GOAT_GOAL_M) * 100, 0, 100) + "%";
     fullBar.style.width = clamp(fullness, 0, 100) + "%";
     fullWrap.classList.toggle("warn", fullness > 60);
   }
@@ -301,7 +313,7 @@ function startWalk(level){
     distance += baseSpeed * dt + Math.min(3.5, distance * 0.005) * dt;
 
     const cx = centerX(distance);
-    const offPath = Math.abs(goatX - cx) > pathW / 2;
+    const offPath = Math.abs(goatX - cx) > pathWidthAt(distance) / 2;
     wrap.classList.toggle("danger", offPath);
     if (offPath){
       fullness = clamp(fullness + offRate * dt, 0, 100);
@@ -311,24 +323,25 @@ function startWalk(level){
       fullness = clamp(fullness - 6 * dt, 0, 100);
     }
 
-    drawPath(); drawGrass();
+    drawPath(); drawGrass(); drawGoalLine();
     drawGoat(goatVX < -4 ? -1 : 1, offPath);
     drawPlayer();
     updateHud();
 
-    if (fullness >= 100){ finishWalk(level); return; }
+    if (distance >= GOAT_GOAL_M){ distance = GOAT_GOAL_M; finishWalk(level, true); return; }
+    if (fullness >= 100){ finishWalk(level, false); return; }
     raf = requestAnimationFrame(loop);
     timer = setTimeout(() => loop(performance.now()), 40);
   }
 
-  function finishWalk(level){
+  function finishWalk(level, success){
     alive = false;
     cancelAnimationFrame(raf); clearTimeout(timer);
     maa();
-    setTimeout(() => showResult(Math.floor(distance), level), 350);
+    setTimeout(() => showResult(level, success), 350);
   }
 
-  drawPath(); drawGrass(); drawGoat(1, false); drawPlayer(); updateHud();
+  drawPath(); drawGrass(); drawGoalLine(); drawGoat(1, false); drawPlayer(); updateHud();
   raf = requestAnimationFrame(loop);
   timer = setTimeout(() => loop(performance.now()), 40);
 }
@@ -360,12 +373,7 @@ function applyReward(r){
   } else S.earn(r.amount);
 }
 
-function showResult(distance, level){
-  const board = addScore(distance);
-  const rank = board.findIndex(b => b.m === distance) + 1;
-  const madeTop10 = rank >= 1 && rank <= 10;
-  const success = distance >= GOAT_SUCCESS_M;
-
+function showResult(level, success){
   let rewardHTML = "";
   if (success){
     const pool = findGoatRewardPool(level);
@@ -379,7 +387,6 @@ function showResult(distance, level){
   } else {
     bad();
   }
-  if (madeTop10 && rank <= 3) confetti(30);
 
   const gained = S.grow({ love: success ? 3 : 1, stamina: success ? 2 : 1 });
   const names = { speed:"はやさ", stamina:"スタミナ", love:"なかよし" };
@@ -387,18 +394,19 @@ function showResult(distance, level){
     `<div class="gainrow"><span>${names[k]}</span><b>+${v}</b></div>`).join("");
 
   $("#goatStage").innerHTML = `
-    <div class="carefin">
-      <div class="fintitle">${Math.floor(distance)}m すすんだ！</div>
-      <div class="eat">${success ? "🐐💖" : "🐐💦"}</div>
-      <p class="note">${madeTop10 ? `ランキング <b>${rank}い</b> に ランクイン！<br>` : ""}${success
-        ? `${GOAT_SUCCESS_M}m を こえて せいこう！`
-        : `${GOAT_SUCCESS_M}m まで あるけると ごほうびが もらえるよ。`}</p>
-      <div class="gains">${gainList}</div>
-      ${rewardHTML}
-      ${boardHTML(board)}
-      <button class="btn" id="gAgainBtn">つぎへ</button>
+    <div class="card">
+      <div class="carefin">
+        <div class="fintitle">${success ? "ゴール！" : "とちゅうで おなかいっぱい…"}</div>
+        <div class="eat">${success ? "🐐🏁" : "🐐💦"}</div>
+        <p class="note">${success
+          ? "さいごまで なかよく あるけたね！"
+          : "みちを はずれすぎちゃったみたい。また ちょうせんしよう。"}</p>
+        <div class="gains">${gainList}</div>
+        ${rewardHTML}
+        <button class="btn" id="gAgainBtn">つぎへ</button>
+      </div>
     </div>`;
-  S.addLog(success ? `やぎの おさんぽ せいこう（Lv.${level}／${Math.floor(distance)}m）` : `やぎの おさんぽ Lv.${level}（${Math.floor(distance)}m）`);
+  S.addLog(success ? `やぎの おさんぽ ゴール（Lv.${level}）` : `やぎの おさんぽ Lv.${level}（とちゅう）`);
 
   $("#gAgainBtn").onclick = () => { tap(); renderGoatEntry(); };
 }

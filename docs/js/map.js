@@ -10,7 +10,7 @@ import * as S from "./save.js";
 import { sheepArt, FOOT_X, FOOT_Y } from "./sheep.js";
 import { $, show, tap, toast, say, yen, startFarmMusic, stopFarmMusic } from "./ui.js";
 
-const W = 1350, H = 1150;              // ぼくじょう ぜんたいの ひろさ
+const W = 1650, H = 1400;              // ぼくじょう ぜんたいの ひろさ
 const VIEW_W = 440, VIEW_H = 704;      // がめんに うつる ぶん（index.html の viewBox と そろえる）
 const SPEED = 165;                     // 1びょうに あるく きょり
 const STICK_MAX = 58;                  // ゆびを うごかす さいだい（ピクセル）
@@ -21,16 +21,16 @@ const STICK_MAX = 58;                  // ゆびを うごかす さいだい（
 export const SPOTS = [
   { id:"pen",   x:440, y:160, r:120, name:"ひつじの さく",     act:"あいさつする",
     hit:{ x:312, y:10,  w:258, h:210 } },
-  { id:"race",  x:1170, y:1082, r:130, name:"レースかいじょう",   act:"はいる",
-    hit:{ x:1046, y:912, w:248, h:212 } },
+  { id:"race",  x:1450, y:1082, r:130, name:"レースかいじょう",   act:"はいる",
+    hit:{ x:1326, y:912, w:248, h:212 } },
   { id:"shop",  x:600, y:240, r:88,  name:"エサの じはんき",   act:"かう",
     hit:{ x:543, y:158, w:114, h:108 } },
   { id:"gacha", x:230, y:970, r:82,  name:"ガチャ",            act:"まわす",
     hit:{ x:180, y:896, w:96,  h:104 } },
   { id:"goats", x:540, y:760, r:100, name:"おさんぽ やぎ",     act:"のぞいてみる",
     hit:{ x:455, y:660, w:170, h:170 } },
-  { id:"horse", x:980, y:930, r:110, name:"じょうばたいけん",   act:"みてみる",
-    hit:{ x:890, y:860, w:180, h:150 } },
+  { id:"horse", x:795, y:1310, r:110, name:"じょうばたいけん",   act:"みてみる",
+    hit:{ x:705, y:1240, w:180, h:150 } },
   { id:"staff", x:0,   y:0,   r:82,  name:"スタッフの おねえさん", act:"はなす",
     hit:{ x:0, y:0, w:66, h:80 } },
 ];
@@ -50,9 +50,9 @@ const SOLID = [
   { x:500, y:10,  w:180, h:155 },   // なや
   { x:567, y:196, w:66,  h:62 },    // じはんき
   { x:200, y:932, w:62,  h:60 },    // ガチャ
-  { x:1060, y:1004, w:220, h:34 },  // レースゲートの よこぼう
+  { x:1340, y:1004, w:220, h:34 },  // レースゲートの よこぼう
   { x:475, y:710, w:130, h:100 },   // おさんぽ やぎ の さく
-  { x:900, y:875, w:160, h:110 },   // じょうばたいけんの リング
+  { x:715, y:1255, w:160, h:110 },  // じょうばたいけんの リング
 ];
 
 const st = {
@@ -231,17 +231,18 @@ function worldSVG(d, penSheepHTML, staffPos){
     <rect x="560" y="470"  width="220"  height="70"  rx="35"/>
     <rect x="700" y="150"  width="70"   height="400" rx="35"/>
     <rect x="560" y="150"  width="210"  height="70"  rx="35"/>
-    <!-- ずーっと みぎへ：じょうば・レースかいじょうへ つづく ながい みち -->
-    <rect x="170" y="1010" width="1150" height="80"  rx="38"/>
-    <rect x="945" y="965"  width="70"   height="70"  rx="30"/>
+    <!-- ずーっと みぎへ：レースかいじょうへ つづく ながい みち -->
+    <rect x="170" y="1010" width="1450" height="80"  rx="38"/>
+    <!-- とちゅうから したへ ぶんき して、じょうばたいけんは がめんの さいかほうへ -->
+    <rect x="750" y="1090" width="90"   height="220" rx="40"/>
   </g>
 
   <!-- いけ（かざり）-->
   <ellipse cx="180" cy="430" rx="70" ry="44" fill="#8fd3ff"/>
   <ellipse cx="180" cy="430" rx="70" ry="44" fill="none" stroke="#fff" stroke-width="4" opacity=".6"/>
 
-  <!-- レースかいじょうの ゲート（おくに トラック）。いちばん みぎしたの すみ -->
-  <g transform="translate(810,912)">${raceGateArt()}</g>
+  <!-- レースかいじょうの ゲート（おくに トラック）。がめんの もっと みぎ、いちばん おく -->
+  <g transform="translate(1090,912)">${raceGateArt()}</g>
 
   <!-- おさんぽ やぎ（いまは じゅんびちゅう）-->
   <rect x="475" y="710" width="130" height="100" rx="10" fill="#c3ecab"/>
@@ -251,13 +252,13 @@ function worldSVG(d, penSheepHTML, staffPos){
   <rect x="483" y="668" width="120" height="26" rx="13" fill="#fff" opacity=".9"/>
   <text x="543" y="686" text-anchor="middle" class="signtxt">おさんぽ やぎ</text>
 
-  <!-- じょうばたいけん（いまは じゅんびちゅう）。入口から とおく はなす -->
-  <ellipse cx="980" cy="930" rx="85" ry="58" fill="#e3c9a0"/>
-  <ellipse cx="980" cy="930" rx="85" ry="58" fill="none" stroke="#f3ead6" stroke-width="6"/>
-  <ellipse cx="980" cy="930" rx="85" ry="58" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="8 6"/>
-  ${horseArt(980, 930)}
-  <rect x="910" y="852" width="140" height="26" rx="13" fill="#fff" opacity=".9"/>
-  <text x="980" y="870" text-anchor="middle" class="signtxt">じょうばたいけん</text>
+  <!-- じょうばたいけん（いまは じゅんびちゅう）。がめんの いちばん したの ほうへ -->
+  <ellipse cx="795" cy="1310" rx="85" ry="58" fill="#e3c9a0"/>
+  <ellipse cx="795" cy="1310" rx="85" ry="58" fill="none" stroke="#f3ead6" stroke-width="6"/>
+  <ellipse cx="795" cy="1310" rx="85" ry="58" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="8 6"/>
+  ${horseArt(795, 1310)}
+  <rect x="725" y="1232" width="140" height="26" rx="13" fill="#fff" opacity=".9"/>
+  <text x="795" y="1250" text-anchor="middle" class="signtxt">じょうばたいけん</text>
 
   <!-- ひつじの さく～なや～じはんき（ひとまとめに ひだりへ ずらす） -->
   <g transform="translate(-200,0)">

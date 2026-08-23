@@ -60,9 +60,9 @@ export function renderHorseEntry(){
 
 /* ---------- うまに ひとが のった え（あしは じめんに いるか・とんでいるかで かえる）---------- */
 function mountArt(x, y, jumping){
-  // まえあしも うしろあしも おなじ むきに おりまげる（じめんを けって とんでいる かんじ）
-  const back  = jumping ? -52 : 0;
-  const front = jumping ? -52 : 0;
+  // まえあしも うしろあしも おなじ むきに（うしろへ）おりまげる
+  const back  = jumping ? 52 : 0;
+  const front = jumping ? 52 : 0;
   return `<g transform="translate(${x},${y})">
     <ellipse cx="0" cy="24" rx="19" ry="4" fill="rgba(0,0,0,.16)" opacity="${jumping ? 0.35 : 0.75}"/>
 
@@ -183,12 +183,15 @@ function startGame(){
   let distance = 0, misses = 0, alive = true, scrollX = 0;
   let y = 0, vy = 0, jumping = false;
   let obstacles = [];
-  let spawnGap = 320, scrolledSincePrev = 0, forceLowNext = false;
+  let spawnGap = 380, scrolledSincePrev = 0, forceLowNext = false, justHadTight = false;
   let raf = 0, timer = 0, last = performance.now();
 
   // ジャンプの たいくうじかんから、「1かいの ジャンプで ぜったい こえられる」
   // さいしょうの まちがいない かんかくを けいさんしておく
   const AIRTIME = (2 * HORSE_JUMP_V) / HORSE_GRAVITY;
+  // 0（じょばん）〜1（700m いこう）で じょじょに むずかしく する すすみぐあい
+  const progress = () => clamp01(distance / 700);
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
   function stageFor(m){
     let s = HORSE_STAGES[0];
@@ -196,23 +199,27 @@ function startGame(){
     return s;
   }
 
-  // つぎの かんかくを きめる：ひろめの きゅうけい／ふつう／たまに タイトな
-  // れんぞく（そのときは つぎの しょうがいぶつを ひくくして、いっきに とべるように）
-  function decideGap(stage){
-    const safe = stage.speed * AIRTIME * 1.2;
+  // つぎの かんかくを きめる：じょばんは ひろめの きゅうけいが おおく、
+  // すすむほど タイトな れんぞく（そのときは つぎを ひくくして いっきに とべるように）
+  // が ふえていく。タイトが 2かい つづかないように ガードも かける
+  function decideGap(stage, prog){
+    const safe = stage.speed * AIRTIME * 1.25;
+    const tightP = justHadTight ? 0 : 0.02 + prog * 0.22;
+    const wideP = 0.5 - prog * 0.22;
     const r = Math.random();
-    if (r < 0.24) return { gap: rand(safe * 1.6, safe * 2.4), low: false };
-    if (r < 0.85) return { gap: rand(safe * 1.05, safe * 1.7), low: false };
-    return { gap: rand(safe * 0.42, safe * 0.68), low: true };
+    if (r < wideP) return { gap: rand(safe * 1.8, safe * 2.6), low: false, tight: false };
+    if (r < 1 - tightP) return { gap: rand(safe * 1.1, safe * 1.8), low: false, tight: false };
+    const tMin = 0.62 - prog * 0.18, tMax = 0.85 - prog * 0.12;
+    return { gap: rand(safe * tMin, safe * tMax), low: true, tight: true };
   }
 
-  function spawnObstacle(stage, forceLow){
-    const puddle = Math.random() < 0.16;
+  function spawnObstacle(stage, forceLow, prog){
+    const puddle = Math.random() < 0.14;
     let h = forceLow ? stage.h[0] : rand(stage.h[0], stage.h[1]);
     let w = rand(stage.w[0], stage.w[1]);
-    if (puddle){ h = Math.max(9, stage.h[0] * 0.55); w *= 1.7; }
-    // たまに ながい しょうがいぶつも（せまい はんいでのみ、ジャンプで こえられる はばに とどめる）
-    else if (!forceLow && Math.random() < 0.14) w *= 1.5;
+    if (puddle){ h = Math.max(9, stage.h[0] * 0.55); w *= 1.5 + prog * 0.4; }
+    // すすむほど ながい しょうがいぶつが でやすくなる（ジャンプで こえられる はばには とどめる）
+    else if (!forceLow && Math.random() < 0.06 + prog * 0.16) w *= 1.35 + prog * 0.35;
     obstacles.push({ x: VIEW_W + 10, w, h, resolved: false, puddle });
   }
 
@@ -280,10 +287,12 @@ function startGame(){
     scrolledSincePrev += stage.speed * dt;
     if (scrolledSincePrev >= spawnGap){
       scrolledSincePrev = 0;
-      spawnObstacle(stage, forceLowNext);
-      const decided = decideGap(stage);
+      const prog = progress();
+      spawnObstacle(stage, forceLowNext, prog);
+      const decided = decideGap(stage, prog);
       spawnGap = decided.gap;
       forceLowNext = decided.low;
+      justHadTight = decided.tight;
     }
 
     drawScenery(); drawHorse(); drawObstacles();
