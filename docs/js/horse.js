@@ -60,8 +60,9 @@ export function renderHorseEntry(){
 
 /* ---------- うまに ひとが のった え（あしは じめんに いるか・とんでいるかで かえる）---------- */
 function mountArt(x, y, jumping){
-  const back  = jumping ? -50 : 0;    // うしろあし：ジャンプちゅうは うしろへ おりまげる
-  const front = jumping ?  55 : 0;    // まえあし：ジャンプちゅうは まえへ おりまげる
+  // まえあしも うしろあしも おなじ むきに おりまげる（じめんを けって とんでいる かんじ）
+  const back  = jumping ? -52 : 0;
+  const front = jumping ? -52 : 0;
   return `<g transform="translate(${x},${y})">
     <ellipse cx="0" cy="24" rx="19" ry="4" fill="rgba(0,0,0,.16)" opacity="${jumping ? 0.35 : 0.75}"/>
 
@@ -120,12 +121,13 @@ function riderArt(x, y){
 const VIEW_W = 300, VIEW_H = 480, GROUND_Y = 380;
 
 // ふじさんは おおきくて とおいので スクロールさせず、すそのを じめんの
-// なかまで のばして じめんと ちゃんと つながって 見えるようにする
+// なかまで のばして じめんと ちゃんと つながって 見えるようにする。
+// すそのは がめんの はばより ずっと ひろく とり、はみだした ぶんは きれて OK
 function fujiArt(){
   return `
-    <polygon points="150,108 272,${GROUND_Y + 40} 28,${GROUND_Y + 40}" fill="#93a3c9"/>
-    <polygon points="150,108 188,176 180,185 166,161 158,176 150,161 142,176 134,161 120,185 112,176" fill="#f4f7ff"/>
-    <polygon points="150,108 272,${GROUND_Y + 40} 226,${GROUND_Y + 40} 150,161" fill="#7f90b8" opacity=".55"/>`;
+    <polygon points="150,100 400,${GROUND_Y + 40} -100,${GROUND_Y + 40}" fill="#93a3c9"/>
+    <polygon points="150,100 188,176 180,185 166,161 158,176 150,161 142,176 134,161 120,185 112,176" fill="#f4f7ff"/>
+    <polygon points="150,100 400,${GROUND_Y + 40} 300,${GROUND_Y + 40} 150,161" fill="#7f90b8" opacity=".55"/>`;
 }
 
 function tileLayer(scrollX, patW, unit){
@@ -181,8 +183,12 @@ function startGame(){
   let distance = 0, misses = 0, alive = true, scrollX = 0;
   let y = 0, vy = 0, jumping = false;
   let obstacles = [];
-  let spawnGap = 260, scrolledSincePrev = 0;
+  let spawnGap = 320, scrolledSincePrev = 0, forceLowNext = false;
   let raf = 0, timer = 0, last = performance.now();
+
+  // ジャンプの たいくうじかんから、「1かいの ジャンプで ぜったい こえられる」
+  // さいしょうの まちがいない かんかくを けいさんしておく
+  const AIRTIME = (2 * HORSE_JUMP_V) / HORSE_GRAVITY;
 
   function stageFor(m){
     let s = HORSE_STAGES[0];
@@ -190,16 +196,36 @@ function startGame(){
     return s;
   }
 
-  function spawnObstacle(stage){
-    obstacles.push({ x: VIEW_W + 10, w: rand(stage.w[0], stage.w[1]), h: rand(stage.h[0], stage.h[1]), resolved: false });
+  // つぎの かんかくを きめる：ひろめの きゅうけい／ふつう／たまに タイトな
+  // れんぞく（そのときは つぎの しょうがいぶつを ひくくして、いっきに とべるように）
+  function decideGap(stage){
+    const safe = stage.speed * AIRTIME * 1.2;
+    const r = Math.random();
+    if (r < 0.24) return { gap: rand(safe * 1.6, safe * 2.4), low: false };
+    if (r < 0.85) return { gap: rand(safe * 1.05, safe * 1.7), low: false };
+    return { gap: rand(safe * 0.42, safe * 0.68), low: true };
+  }
+
+  function spawnObstacle(stage, forceLow){
+    const puddle = Math.random() < 0.16;
+    let h = forceLow ? stage.h[0] : rand(stage.h[0], stage.h[1]);
+    let w = rand(stage.w[0], stage.w[1]);
+    if (puddle){ h = Math.max(9, stage.h[0] * 0.55); w *= 1.7; }
+    // たまに ながい しょうがいぶつも（せまい はんいでのみ、ジャンプで こえられる はばに とどめる）
+    else if (!forceLow && Math.random() < 0.14) w *= 1.5;
+    obstacles.push({ x: VIEW_W + 10, w, h, resolved: false, puddle });
   }
 
   function drawHorse(){
     horseG.innerHTML = mountArt(HORSE_X, GROUND_Y - y, jumping);
   }
   function drawObstacles(){
-    // じめんに しっかり めりこませて（+8）、かげも つけて、うくのを ふせぐ
+    // じめんに しっかり めりこませて（+8〜10）、かげも つけて、うくのを ふせぐ
     obsG.innerHTML = obstacles.map(o => {
+      if (o.puddle){
+        return `<ellipse cx="${(o.x + o.w / 2).toFixed(1)}" cy="${(GROUND_Y + 4).toFixed(1)}" rx="${(o.w / 2).toFixed(1)}" ry="${(o.h * 0.75).toFixed(1)}" fill="#3fa3f5" opacity=".85"/>
+          <ellipse cx="${(o.x + o.w / 2).toFixed(1)}" cy="${(GROUND_Y + 2).toFixed(1)}" rx="${(o.w / 2 - 4).toFixed(1)}" ry="${(o.h * 0.5).toFixed(1)}" fill="#8fd3ff" opacity=".8"/>`;
+      }
       const top = GROUND_Y - o.h;
       return `<ellipse cx="${(o.x + o.w / 2).toFixed(1)}" cy="${GROUND_Y + 3}" rx="${(o.w / 2 + 3).toFixed(1)}" ry="4" fill="rgba(0,0,0,.18)"/>
         <rect x="${o.x.toFixed(1)}" y="${top.toFixed(1)}" width="${o.w.toFixed(1)}" height="${(o.h + 10).toFixed(1)}" fill="#a5764a"/>
@@ -254,8 +280,10 @@ function startGame(){
     scrolledSincePrev += stage.speed * dt;
     if (scrolledSincePrev >= spawnGap){
       scrolledSincePrev = 0;
-      spawnObstacle(stage);
-      spawnGap = rand(stage.gap[0], stage.gap[1]);
+      spawnObstacle(stage, forceLowNext);
+      const decided = decideGap(stage);
+      spawnGap = decided.gap;
+      forceLowNext = decided.low;
     }
 
     drawScenery(); drawHorse(); drawObstacles();

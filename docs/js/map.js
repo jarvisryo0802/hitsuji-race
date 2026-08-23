@@ -97,16 +97,20 @@ function staffArt(){
 }
 
 /* ---------- やぎ・うま の え（かんたん・かるい）---------- */
-export function goatArt(x, y, flip = 1){
+// grazing=true で あたまを したに さげて くさを たべている ポーズに する
+export function goatArt(x, y, flip = 1, grazing = false){
+  const headRot = grazing ? 38 : 0;
   return `<g transform="translate(${x},${y}) scale(${flip},1)">
     <ellipse cx="0" cy="18" rx="13" ry="3.5" fill="rgba(0,0,0,.15)"/>
     <rect x="-7" y="2" width="5" height="14" rx="2" fill="#5a5a6e"/>
     <rect x="3"  y="2" width="5" height="14" rx="2" fill="#5a5a6e"/>
     <ellipse cx="0" cy="-4" rx="15" ry="11" fill="#f5f1e6"/>
-    <ellipse cx="12" cy="-10" rx="8" ry="7" fill="#f5f1e6"/>
-    <path d="M8,-20 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M14,-19 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <circle cx="17" cy="-11" r="1.6" fill="#2b2b3a"/>
+    <g transform="rotate(${headRot} 6 -8)">
+      <ellipse cx="12" cy="-10" rx="8" ry="7" fill="#f5f1e6"/>
+      <path d="M8,-20 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M14,-19 q4,-6 8,-2" stroke="#c9c1b0" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="17" cy="-11" r="1.6" fill="#2b2b3a"/>
+    </g>
   </g>`;
 }
 export function horseArt(x, y){

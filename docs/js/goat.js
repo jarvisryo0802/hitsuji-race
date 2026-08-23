@@ -127,32 +127,60 @@ function showConfirm(level){
    ========================================================= */
 const VIEW_W = 220, VIEW_H = 300, GOAT_Y = 230, PPM = 3;
 
+// プレイヤーが やぎに リードを つけて あるいている ように みせる
+const PLAYER_X = 110, PLAYER_Y = GOAT_Y + 55;
+
+function playerArt(x, y, lean){
+  const armRot = -20 + lean * 40;   // ひっぱっている ほうこうへ うでを ふる
+  return `<g transform="translate(${x},${y}) rotate(${(lean * 7).toFixed(1)})">
+    <ellipse cx="0" cy="26" rx="12" ry="3.5" fill="rgba(0,0,0,.15)"/>
+    <rect x="-6" y="4" width="5.5" height="20" rx="2.7" fill="#4a6b9a"/>
+    <rect x="1"  y="4" width="5.5" height="20" rx="2.7" fill="#4a6b9a"/>
+    <rect x="-9" y="-16" width="18" height="20" rx="7" fill="#ff8a2b"/>
+    <circle cx="0" cy="-24" r="8.5" fill="#f6d3ae"/>
+    <path d="M-8.5,-27 a8.5,8.5 0 0 1 17,0 q-8.5,-5.5 -17,0z" fill="#5a4636"/>
+    <g transform="rotate(${armRot.toFixed(1)} 6 -12)"><rect x="4" y="-14" width="6" height="16" rx="3" fill="#f6d3ae"/></g>
+  </g>`;
+}
+function leashArt(px, py, gx, gy){
+  const midX = (px + gx) / 2, midY = (py + gy) / 2 + 8;
+  return `<path d="M${px.toFixed(1)},${py.toFixed(1)} Q${midX.toFixed(1)},${midY.toFixed(1)} ${gx.toFixed(1)},${gy.toFixed(1)}"
+    stroke="#8a6d4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+}
+
+// 0〜1の きまった ぎじらんすう（おなじ すうじなら いつも おなじ あたい）
+function hash(n){ const s = Math.sin(n * 12.9898) * 43758.5453; return s - Math.floor(s); }
+const TUFT = `<path d="M-4,4 Q-3,-6 -1,3" stroke="#5aa83f" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M0,4.5 Q0,-8 0,3.5" stroke="#4d9636" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M4,4 Q3,-6 1,3" stroke="#5aa83f" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+
 function startWalk(level){
-  const pathW    = 54 - (level - 1) * 3;                    // みちの はば（せまいほど むずかしい）
-  const wanderA  = 46 + level * 5;                           // やぎが かってに よろける つよさ
-  const baseSpeed = 6.0 + (level - 1) * 0.5;                 // びょうそく（メートル）。はやめ
+  const pathW     = 50 - (level - 1) * 3;                     // みちの はば（せまいほど むずかしい）
+  const wanderA   = 54 + level * 6;                            // やぎが かってに よろける つよさ
+  const baseSpeed = 6.0 + (level - 1) * 0.5;                   // びょうそく（メートル）。はやめ
+  const offRate   = 20 + level * 2.2;                          // みちの そとで メーターが ふえる はやさ
 
   $("#goatStage").innerHTML = `
-    <p class="stagettl">Lv.${level} の やぎと おさんぽ！</p>
-    <p class="hintline">やぎは おもくて すぐには いうことを きかないよ。<br>
-      おなじ ほうこうに <b>ながく ドラッグしつづける</b>と、じわじわ うごく。<br>
-      みちの そとの くさを たべすぎると おなかいっぱいで おしまい！</p>
-    <div class="gwalkwrap">
+    <div class="gwalkwrap" id="gWrap">
       <svg class="gwalksvg" id="gWalkSvg" viewBox="0 0 ${VIEW_W} ${VIEW_H}" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="#9ddc84"/>
+        <g id="gGrass"></g>
         <path id="gPath" fill="none" stroke="#e3c9a0" stroke-linecap="round"/>
+        <g id="gLeash"></g>
+        <g id="gPlayer"></g>
         <g id="gWalker"></g>
       </svg>
-      <div class="hhud">
-        <span id="gDist">0m</span>
-      </div>
-    </div>
-    <div class="timebar" id="gFullWrap"><i id="gFullBar"></i></div>
-    <p class="note center">おなかいっぱい メーター</p>`;
+      <div class="gfullwrap" id="gFullWrap"><i id="gFullBar"></i><span class="gfullwarn">⚠️</span></div>
+      <div class="ghud"><span id="gDist">Lv.${level}・0m</span></div>
+    </div>`;
 
+  const wrap = $("#gWrap");
   const svg = $("#gWalkSvg");
   const pathEl = $("#gPath");
+  const grassEl = $("#gGrass");
   const walker = $("#gWalker");
+  const playerEl = $("#gPlayer");
+  const leashEl = $("#gLeash");
   const distEl = $("#gDist");
   const fullBar = $("#gFullBar");
   const fullWrap = $("#gFullWrap");
@@ -167,7 +195,7 @@ function startWalk(level){
 
   let goatX = 110, goatVX = 0, fullness = 0, distance = 0;
   let wanderDir = 0, nextWanderAt = 0, elapsed = 0;
-  let munchT = 0;
+  let munchT = 0, lean = 0;
   let alive = true, raf = 0, timer = 0, last = performance.now();
 
   function drawPath(){
@@ -182,14 +210,38 @@ function startWalk(level){
     pathEl.setAttribute("stroke-width", pathW);
   }
 
-  function drawGoat(face){
-    walker.innerHTML = goatArt(goatX, GOAT_Y, face);
+  // すすんだ きょりに ひもづけて くさむらを えがく（せかいざひょうなので
+  // みちと おなじように なめらかに スクロールする）
+  function drawGrass(){
+    const stepWorld = 16;
+    const minD = distance - (VIEW_H - GOAT_Y) / PPM - 10;
+    const maxD = distance + GOAT_Y / PPM + 10;
+    let s = "";
+    for (let d0 = Math.floor(minD / stepWorld) * stepWorld; d0 <= maxD; d0 += stepWorld){
+      if (hash(d0) > 0.5) continue;
+      const side = hash(d0 + 1000) < 0.5 ? -1 : 1;
+      const cx = centerX(d0);
+      const off = pathW / 2 + 8 + hash(d0 + 2000) * 24;
+      const tx = clamp(cx + side * off, 6, VIEW_W - 6);
+      const ty = GOAT_Y - (d0 - distance) * PPM;
+      if (ty < -10 || ty > VIEW_H + 10) continue;
+      s += `<g transform="translate(${tx.toFixed(1)},${ty.toFixed(1)})">${TUFT}</g>`;
+    }
+    grassEl.innerHTML = s;
+  }
+
+  function drawGoat(face, grazing){
+    walker.innerHTML = goatArt(goatX, GOAT_Y, face, grazing);
+  }
+  function drawPlayer(){
+    playerEl.innerHTML = playerArt(PLAYER_X, PLAYER_Y, lean);
+    leashEl.innerHTML = leashArt(PLAYER_X + lean * 5, PLAYER_Y - 34, goatX, GOAT_Y + 6);
   }
 
   function updateHud(){
-    distEl.textContent = Math.floor(distance) + "m";
+    distEl.textContent = `Lv.${level}・${Math.floor(distance)}m`;
     fullBar.style.width = clamp(fullness, 0, 100) + "%";
-    fullWrap.classList.toggle("warn", fullness > 65);
+    fullWrap.classList.toggle("warn", fullness > 60);
   }
 
   // ゆびで ドラッグして やぎを うごかす。おもい ものを ひっぱる かんじに
@@ -225,18 +277,23 @@ function startWalk(level){
     last = ts;
     elapsed += dt;
 
+    let force = 0;
     if (dragging){
-      const force = clamp(pullX / PULL_RANGE, -1, 1) * PULL_ACCEL;
+      force = clamp(pullX / PULL_RANGE, -1, 1) * PULL_ACCEL;
       goatVX += force * dt;
     } else {
-      // やぎ じしんの きまぐれな よろけ（ひっぱっていない あいだ だけ）
+      // やぎ じしんの きまぐれな よろけ（ひっぱっていない あいだ だけ）。
+      // すでに みちから ずれている ほうこうへ さらに いきたがる
       if (elapsed >= nextWanderAt){
-        wanderDir = [-1, 0, 1][Math.floor(Math.random() * 3)];
-        nextWanderAt = elapsed + rand(0.6, 1.4);
+        const cx = centerX(distance);
+        const awayDir = goatX >= cx ? 1 : -1;
+        wanderDir = Math.random() < 0.65 ? awayDir : [-1, 0, 1][Math.floor(Math.random() * 3)];
+        nextWanderAt = elapsed + rand(0.5, 1.1);
       }
       goatVX += wanderDir * wanderA * dt;
       goatVX *= Math.max(0, 1 - 2.2 * dt);          // まさつで だんだん おそくなる
     }
+    lean += ((dragging ? Math.sign(force) : 0) - lean) * Math.min(1, dt * 6);
 
     goatVX = clamp(goatVX, -170, 170);
     goatX = clamp(goatX + goatVX * dt, 14, VIEW_W - 14);
@@ -245,16 +302,18 @@ function startWalk(level){
 
     const cx = centerX(distance);
     const offPath = Math.abs(goatX - cx) > pathW / 2;
+    wrap.classList.toggle("danger", offPath);
     if (offPath){
-      fullness = clamp(fullness + 15 * dt, 0, 100);
+      fullness = clamp(fullness + offRate * dt, 0, 100);
       munchT -= dt;
-      if (munchT <= 0){ munchT = 0.3; munch(); }
+      if (munchT <= 0){ munchT = 0.28; munch(); }
     } else {
-      fullness = clamp(fullness - 9 * dt, 0, 100);
+      fullness = clamp(fullness - 6 * dt, 0, 100);
     }
 
-    drawPath();
-    drawGoat(goatVX < -4 ? -1 : 1);
+    drawPath(); drawGrass();
+    drawGoat(goatVX < -4 ? -1 : 1, offPath);
+    drawPlayer();
     updateHud();
 
     if (fullness >= 100){ finishWalk(level); return; }
@@ -269,7 +328,7 @@ function startWalk(level){
     setTimeout(() => showResult(Math.floor(distance), level), 350);
   }
 
-  drawPath(); drawGoat(1); updateHud();
+  drawPath(); drawGrass(); drawGoat(1, false); drawPlayer(); updateHud();
   raf = requestAnimationFrame(loop);
   timer = setTimeout(() => loop(performance.now()), 40);
 }
