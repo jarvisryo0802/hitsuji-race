@@ -1,5 +1,5 @@
 // ===== セーブデータと 1日の きりかえ =====
-import { START_MONEY, ALLOWANCE, CARE_PER_DAY, RACE_PER_DAY, FOODS, SKILL_UNLOCK } from "./data.js";
+import { START_MONEY, ALLOWANCE, CARE_PER_DAY, FOODS, SKILL_UNLOCK } from "./data.js";
 
 const KEY = "makainoSheepRace";
 
@@ -21,7 +21,6 @@ function blank(){
     equipSkill: "dash",
     equipItem: null,
     careLeft: CARE_PER_DAY,
-    raceLeft: RACE_PER_DAY,
     lastDay: "",
     wantFood: "ninjin",     // きょう たべたいもの
     days: 0, races: 0, wins: 0,
@@ -61,7 +60,6 @@ export function newDay(){
   const first = !data.lastDay;
   data.lastDay = t;
   data.careLeft = CARE_PER_DAY;
-  data.raceLeft = RACE_PER_DAY;
   data.days += 1;
   data.wantFood = FOODS[Math.floor(Math.random() * FOODS.length)].id;
 

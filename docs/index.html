@@ -42,7 +42,6 @@
       <div class="money">💰 <b id="mapMoney">0</b>えん</div>
       <div class="hudpill"><b id="mapDay">1</b>日め</div>
       <div class="hudpill">🧺<b id="mapCare">3</b></div>
-      <div class="hudpill">🏁<b id="mapRace">1</b></div>
       <button class="hudbtn" id="mapBag">🎒</button>
       <button class="hudbtn" id="mapMenu">⚙</button>
     </div>
@@ -77,6 +76,24 @@
         </button>
       </div>
       <div id="careStage" class="hide"></div>
+    </div>
+  </section>
+
+  <!-- ============ おさんぽ やぎ ============ -->
+  <section class="screen" id="goat">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="sign small">🐐 おさんぽ やぎ</div></div>
+    <div class="card">
+      <div id="goatStage"></div>
+    </div>
+  </section>
+
+  <!-- ============ じょうばたいけん ============ -->
+  <section class="screen" id="horse">
+    <div class="topbar"><button class="backBtn">‹ もどる</button>
+      <div class="sign small">🐎 じょうばたいけん</div></div>
+    <div class="card">
+      <div id="horseStage"></div>
     </div>
   </section>
 
@@ -138,7 +155,8 @@
       <div class="equip" id="readySkill"></div>
       <div class="equip" id="readyItem"></div>
       <p class="note">コースを <b id="readyLaps">1</b>しゅう。レースは 見まもるのが メイン。<br>
-        わざボタンは <b>1レースに 1かい</b> だけ つかえるよ。</p>
+        わざボタンは <b>1レースに 1かい</b> だけ つかえるよ。<br>
+        しゅつじょうには <b id="readyPrice">500</b>えん かかるよ。</p>
       <button class="btn big pink" id="readyGo">スタート！</button>
       <button class="btn small blue" id="readyBag">わざ・どうぐを かえる</button>
     </div>

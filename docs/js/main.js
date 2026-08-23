@@ -7,6 +7,8 @@ import { $, $$, show, current, tap, coin, toast, dialog, say, muted, setMuted, y
 import * as F from "./farm.js";
 import * as R from "./race.js";
 import * as M from "./map.js";
+import * as G from "./goat.js";
+import * as H from "./horse.js";
 
 // あたらしい バージョンに いれかえる ための めじるし
 let reloading = false, pendingReload = false;
@@ -112,15 +114,6 @@ async function doSpot(sp){
   }
 
   if (sp.id === "race"){
-    if (d.raceLeft <= 0){
-      await say("スタッフの おにいさん", "きょうの レースは おわっちゃった！<br>また あした きてね。");
-      return goMap();
-    }
-    const ok = await say("スタッフの おにいさん",
-      `きょうの レースが はじまるよ！<br><b>${d.name}</b>で しゅつじょうする？`, [
-        { label:"でる！", value:true }, { label:"まだ やめておく", value:false },
-      ]);
-    if (!ok) return goMap();
     show("ready"); R.renderReady();
     return;
   }
@@ -130,9 +123,16 @@ async function doSpot(sp){
     return goMap();
   }
 
-  if (sp.id === "goats" || sp.id === "horse"){
-    await say("スタッフの おにいさん", "ここは いま じゅんびちゅうです。<br>もう すこし まっててね！");
-    return goMap();
+  if (sp.id === "goats"){
+    show("goat");
+    G.renderGoatEntry();
+    return;
+  }
+
+  if (sp.id === "horse"){
+    show("horse");
+    H.renderHorseEntry();
+    return;
   }
   goMap();
 }
@@ -195,6 +195,8 @@ function wire(){
   let bagFrom = "map";
 
   F.setBackToMap(() => { M.refreshHud(); goMap(); });
+  G.setBackToMap(() => { M.refreshHud(); goMap(); });
+  H.setBackToMap(() => { M.refreshHud(); goMap(); });
 
   $("#actBtn").onclick = () => { tap(); doSpot(M.nearSpot()); };
   $("#mapBag").onclick = () => { tap(); bagFrom = "map"; M.stopMap(); show("bag"); F.renderBag(); };

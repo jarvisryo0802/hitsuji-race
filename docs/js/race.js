@@ -1,6 +1,6 @@
 // ===== レース（コーナーのある しゅうかいコース／見守るのが メイン）=====
 import {
-  LAPS, RACE_SECONDS, PRIZE, RIVALS, RUNNERS, SKILLS, CALLOUTS,
+  LAPS, RACE_SECONDS, RACE_PRICE, PRIZE, RIVALS, RUNNERS, SKILLS, CALLOUTS,
   findSkill, findItem,
 } from "./data.js";
 import * as S from "./save.js";
@@ -64,6 +64,8 @@ export function renderReady(){
     ? `<b>${it.icon} ${it.name}</b><small>${it.desc}</small>`
     : `<b>どうぐ なし</b><small>もちものから えらべるよ</small>`;
   $("#readyLaps").textContent = LAPS;
+  $("#readyPrice").textContent = RACE_PRICE;
+  $("#readyGo").disabled = d.money < RACE_PRICE;
 }
 
 /* =========================================================
@@ -71,6 +73,11 @@ export function renderReady(){
    ========================================================= */
 export function startRace(){
   const d = S.data;
+  if (!S.pay(RACE_PRICE)){
+    bad();
+    toast("おかねが たりないよ");
+    return;
+  }
   const mine = {
     name: d.name, color: d.color, isPlayer: true,
     sp: d.speed, sta: d.stamina, love: d.love,
@@ -590,7 +597,6 @@ function showResult(){
   const order = [...st.racers].sort((a, b) => a.rank - b.rank);
   const prize = PRIZE[me.rank - 1] || 0;
 
-  d.raceLeft = Math.max(0, d.raceLeft - 1);
   d.races += 1;
   if (me.rank === 1) d.wins += 1;
   if (!d.bestTime || me.time < d.bestTime) d.bestTime = me.time;

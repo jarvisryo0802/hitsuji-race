@@ -4,8 +4,12 @@
 export const START_MONEY  = 1000;  // さいしょに もっている おかね
 export const ALLOWANCE    = 300;   // まいにち もらえる おこづかい
 export const CARE_PER_DAY = 3;     // 1日に できる おせわの かず
-export const RACE_PER_DAY = 1;     // 1日に でられる レースの かず
 export const GACHA_PRICE  = 300;   // ガチャ 1かいの ねだん
+// レース・おさんぽやぎ・じょうばたいけんは 回数せいげん なし。
+// おかねが ある かぎり なんかいでも あそべる（そのかわり おかねが かかる）
+export const RACE_PRICE   = 500;   // レース 1かいの さんかひ
+export const GOAT_PRICE   = 500;   // おさんぽ やぎ 1かいの りょうきん
+export const HORSE_PRICE  = 800;   // じょうばたいけん 1かいの りょうきん
 export const LAPS         = 1;     // レースの しゅうかいすう（おおきな コースを 1しゅう）
 // コーナーの げんそくや ばてる ぶんが あるので、じっさいは この 1.1ばい くらいに なる
 export const RACE_SECONDS = 30;    // レース1かいの めやす（びょう）
@@ -60,6 +64,56 @@ export const ITEMS = [
   { id:"drink",   name:"げんきドリンク", icon:"🥤", desc:"さいごまで バテない" },
   { id:"ribbon",  name:"ラッキーリボン", icon:"🎀", desc:"ときどき グーンと のびる" },
 ];
+
+// ---- おさんぽ やぎ ----
+// ルーレットで レベル(1〜10)が でる おもさ。たかいレベルほど でにくい
+export const goatLevelWeight = (lv) => 11 - lv;
+export const GOAT_SUCCESS_M  = 40;   // これより とおくまで あるけたら「せいこう」で ごほうび
+
+// レベルの はんいごとの ごほうび（weight が おおきいほど よく でる）
+export const GOAT_REWARDS = [
+  { min:1, max:3, pool:[
+    { kind:"food",  id:"hoshikusa", weight:14 },
+    { kind:"food",  id:"ninjin",    weight:14 },
+    { kind:"food",  id:"pan",       weight:12 },
+    { kind:"money", amount:50,      weight:10 },
+  ]},
+  { min:4, max:6, pool:[
+    { kind:"food", id:"kyabetsu", weight:14 },
+    { kind:"food", id:"ringo",    weight:10 },
+    { kind:"item", id:"shoes",    weight:12 },
+    { kind:"item", id:"omamori",  weight:12 },
+    { kind:"money", amount:150,   weight:8  },
+  ]},
+  { min:7, max:8, pool:[
+    { kind:"food", id:"tokusei", weight:10, rare:true },
+    { kind:"item", id:"drink",   weight:14 },
+    { kind:"item", id:"ribbon",  weight:10, rare:true },
+    { kind:"money", amount:300,  weight:10 },
+  ]},
+  { min:9, max:10, pool:[
+    { kind:"item",  id:"ribbon",   weight:14, rare:true },
+    { kind:"skill", id:"jama",     weight:12, rare:true },
+    { kind:"skill", id:"mofumofu", weight:12, rare:true },
+    { kind:"money", amount:500,    weight:8,  rare:true },
+  ]},
+];
+export const findGoatRewardPool = (level) =>
+  (GOAT_REWARDS.find(t => level >= t.min && level <= t.max) || GOAT_REWARDS[0]).pool;
+
+// ---- 乗馬たいけん（ジャンプで しょうがいぶつを こえる エンドレスゲーム）----
+// とおくまで すすむほど しょうがいぶつが おおきく・ひんぱんに なる。
+// たかさは いつも ジャンプの MAX_CLEAR より ひくく なるように しておく（ぜったいに こえられない、が おきないように）
+export const HORSE_GRAVITY  = 1400;   // じゅうりょく（1びょうの おちるはやさの ぞうか）
+export const HORSE_JUMP_V   = 520;    // ジャンプの はじめの はやさ
+export const HORSE_STAGES = [
+  { m:0,   speed:170, h:[20, 28], w:[20, 26], gap:[250, 330] },
+  { m:100, speed:200, h:[26, 38], w:[24, 32], gap:[215, 295] },
+  { m:250, speed:235, h:[34, 48], w:[28, 38], gap:[185, 260] },
+  { m:450, speed:270, h:[42, 58], w:[32, 44], gap:[160, 230] },
+  { m:700, speed:310, h:[50, 68], w:[36, 50], gap:[145, 210] },
+];
+export const HORSE_LIVES = 3;         // これに たっしたら おわり
 
 // ---- ぼくじょうの なかま（ライバル）----
 export const RIVALS = [

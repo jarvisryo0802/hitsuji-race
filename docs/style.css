@@ -279,6 +279,40 @@ html,body{
 .unlock{ background:#fff5d6; border-radius:14px; padding:10px; margin:10px 0;
   font-size:13px; font-weight:800; color:#8a6d1c; line-height:1.6 }
 
+/* ---- おさんぽ やぎ：ルーレット ---- */
+.groulette{ margin:14px auto; width:170px; height:170px; border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, #fff, #ffe9f1 70%, #ffb3cd);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px rgba(0,0,0,.14), inset 0 0 0 6px #fff; position:relative }
+.groulette.rare{ box-shadow:0 0 0 6px #ffd45e, 0 8px 24px rgba(255,180,0,.5) }
+.gwindow{ font-size:34px; font-weight:900; color:#e0538a }
+.gresult{ text-align:center }
+.gprevsvg{ width:130px; height:auto; margin:6px auto; display:block }
+.glevel{ display:inline-block; font-size:20px; font-weight:900; color:#fff;
+  background:linear-gradient(180deg,#8ee07d,#57c246); padding:5px 18px; border-radius:999px;
+  box-shadow:0 4px 10px rgba(0,0,0,.14); margin-bottom:4px }
+.glevel.mid{ background:linear-gradient(180deg,#7fc7ff,#3fa3f5) }
+.glevel.lvrare{ background:linear-gradient(180deg,#ffd24a,#ff9f1a) }
+
+/* ---- おさんぽ やぎ：みちを はずれない リード さんぽ ---- */
+.gwalkwrap{ position:relative; border-radius:16px; overflow:hidden; touch-action:none; cursor:grab }
+.gwalksvg{ width:100%; height:auto; display:block }
+
+/* ---- じょうばたいけん ---- */
+.hwrap{ position:relative; border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer }
+.hwrap.shake{ animation:hshake .3s }
+@keyframes hshake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.hsvg{ width:100%; height:auto; display:block }
+.hhud{ position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between;
+  font-size:15px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.3); pointer-events:none }
+.hboard{ background:#f2f8fb; border-radius:14px; padding:10px 12px; margin:10px 0 }
+.hrow{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#4a6b7a;
+  padding:3px 0; border-bottom:1px solid #e2eaf0 }
+.hrow:last-child{ border-bottom:none }
+.hrank{ width:20px; text-align:center; color:var(--sub) }
+.hdist{ flex:1 }
+.hdate{ font-size:11px; color:var(--sub); font-weight:700 }
+
 /* ---- じはんき ---- */
 .shoplist{ display:flex; flex-direction:column; gap:8px }
 .shoprow{ display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:9px 12px }

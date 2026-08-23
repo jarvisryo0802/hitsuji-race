@@ -193,6 +193,24 @@ export function baa(){
   o.start(t); lfo.start(t); o.stop(t + 0.6); lfo.stop(t + 0.6);
 }
 
+// やぎの なきごえ（ひつじより すこし たかい）
+export function maa(){
+  if (muted || !ensureCtx()) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(560, t);
+  o.frequency.linearRampToValueAtTime(500, t + 0.35);
+  const lfo = actx.createOscillator(), lg = actx.createGain();
+  lfo.frequency.value = 22; lg.gain.value = 30;
+  lfo.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.09, t + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.4);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); lfo.start(t); o.stop(t + 0.45); lfo.stop(t + 0.45);
+}
+
 // もぐもぐ
 export function munch(){ sound(150 + Math.random() * 60, 0.07, "sawtooth", 0.07); }
 export const tap    = () => sound(660, 0.06, "triangle", 0.13);
