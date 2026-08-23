@@ -1,6 +1,5 @@
 // ===== 乗馬たいけん（タップで ジャンプする エンドレスゲーム）=====
 import { HORSE_GRAVITY, HORSE_JUMP_V, HORSE_STAGES, HORSE_LIVES, HORSE_PRICE } from "./data.js";
-import { horseArt } from "./map.js";
 import * as S from "./save.js";
 import { today } from "./save.js";
 import { $, tap, good, bad, sound, toast, confetti } from "./ui.js";
@@ -59,7 +58,54 @@ export function renderHorseEntry(){
   };
 }
 
-/* ---------- ひとが うまに のった え（horseArt と おなじ きじゅんてん）---------- */
+/* ---------- うまに ひとが のった え（あしは じめんに いるか・とんでいるかで かえる）---------- */
+function mountArt(x, y, jumping){
+  const back  = jumping ? -50 : 0;    // うしろあし：ジャンプちゅうは うしろへ おりまげる
+  const front = jumping ?  55 : 0;    // まえあし：ジャンプちゅうは まえへ おりまげる
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="0" cy="24" rx="19" ry="4" fill="rgba(0,0,0,.16)" opacity="${jumping ? 0.35 : 0.75}"/>
+
+    <!-- しっぽ -->
+    <path d="M-23,-10 Q-33,-2 -27,14 Q-25,0 -19,-6 Z" fill="#5a3d22"/>
+
+    <!-- うしろあし（こかんせつは からだの したらへん） -->
+    <g transform="rotate(${back} -10 3)">
+      <rect x="-13.5" y="3" width="7" height="20" rx="3" fill="#8a5f38"/>
+    </g>
+    <g transform="rotate(${back * 0.85} -2.5 3)">
+      <rect x="-6" y="3" width="7" height="20" rx="3" fill="#8a5f38"/>
+    </g>
+
+    <!-- どう -->
+    <ellipse cx="-2" cy="-6" rx="23" ry="13.5" fill="#a5764a"/>
+
+    <!-- くび -->
+    <path d="M13,-15 Q28,-34 22,-6 Q17,-9 12,-5 Z" fill="#a5764a"/>
+    <!-- たてがみ -->
+    <path d="M15,-32 Q26,-38 21,-18 Q18,-22 14,-16 Q17,-25 15,-32 Z" fill="#5a3d22"/>
+
+    <!-- あたま -->
+    <ellipse cx="27" cy="-23" rx="9.5" ry="7.5" fill="#a5764a"/>
+    <ellipse cx="35" cy="-19" rx="4.5" ry="3.6" fill="#a5764a"/>
+    <!-- みみ -->
+    <polygon points="21,-29 24.5,-39 27.5,-30" fill="#a5764a"/>
+    <polygon points="29,-28.5 32.5,-38 34.5,-29" fill="#a5764a"/>
+    <polygon points="22,-29 24.5,-36 26.5,-30" fill="#6b4526"/>
+    <polygon points="30,-28.5 32.5,-35 34,-29.5" fill="#6b4526"/>
+    <!-- め・はな -->
+    <circle cx="30.5" cy="-23" r="1.7" fill="#2b2b3a"/>
+    <ellipse cx="38.5" cy="-17.5" rx="1.6" ry="1.1" fill="#4a3220"/>
+
+    <!-- まえあし（こかんせつは からだの したらへん） -->
+    <g transform="rotate(${front} 7 3)">
+      <rect x="4" y="3" width="7" height="20" rx="3" fill="#6b4526"/>
+    </g>
+    <g transform="rotate(${front * 0.85} 15 3)">
+      <rect x="12" y="3" width="7" height="20" rx="3" fill="#6b4526"/>
+    </g>
+  </g>${riderArt(x, y)}`;
+}
+
 function riderArt(x, y){
   return `<g transform="translate(${x},${y})">
     <path d="M-9,-14 Q-1,-23 7,-14" stroke="#3a2a1a" stroke-width="5.5" fill="none" stroke-linecap="round"/>
@@ -70,21 +116,16 @@ function riderArt(x, y){
   </g>`;
 }
 
-/* ---------- けしき：とおくに ふじさん、くも・おか・じめんの すじが スクロール ---------- */
+/* ---------- けしき：とおくに ふじさん（うごかない）、くも・おか・じめんの すじが スクロール ---------- */
 const VIEW_W = 300, VIEW_H = 480, GROUND_Y = 380;
 
-function fujiArt(scrollX){
-  const dx = -(scrollX * 0.04) % VIEW_W;
-  return `<g transform="translate(${dx.toFixed(1)},0)">
-      <polygon points="150,120 260,300 40,300" fill="#93a3c9"/>
-      <polygon points="150,120 185,182 178,190 165,168 158,182 150,168 142,182 135,168 122,190 115,182" fill="#f4f7ff"/>
-      <polygon points="150,120 260,300 220,300 150,168" fill="#7f90b8" opacity=".55"/>
-    </g>
-    <g transform="translate(${(dx + VIEW_W).toFixed(1)},0)">
-      <polygon points="150,120 260,300 40,300" fill="#93a3c9"/>
-      <polygon points="150,120 185,182 178,190 165,168 158,182 150,168 142,182 135,168 122,190 115,182" fill="#f4f7ff"/>
-      <polygon points="150,120 260,300 220,300 150,168" fill="#7f90b8" opacity=".55"/>
-    </g>`;
+// ふじさんは おおきくて とおいので スクロールさせず、すそのを じめんの
+// なかまで のばして じめんと ちゃんと つながって 見えるようにする
+function fujiArt(){
+  return `
+    <polygon points="150,108 272,${GROUND_Y + 40} 28,${GROUND_Y + 40}" fill="#93a3c9"/>
+    <polygon points="150,108 188,176 180,185 166,161 158,176 150,161 142,176 134,161 120,185 112,176" fill="#f4f7ff"/>
+    <polygon points="150,108 272,${GROUND_Y + 40} 226,${GROUND_Y + 40} 150,161" fill="#7f90b8" opacity=".55"/>`;
 }
 
 function tileLayer(scrollX, patW, unit){
@@ -103,7 +144,7 @@ const DASH = `<rect x="0" y="${GROUND_Y + 14}" width="16" height="5" rx="2.5" fi
 function scenery(scrollX){
   return `
     <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="#bfe6ff"/>
-    ${fujiArt(scrollX)}
+    ${fujiArt()}
     ${tileLayer(scrollX * 0.15, 160, CLOUD)}
     ${tileLayer(scrollX * 0.4, 220, HILL)}
     <rect x="0" y="${GROUND_Y}" width="${VIEW_W}" height="${VIEW_H - GROUND_Y}" fill="#8fd36a"/>
@@ -154,13 +195,16 @@ function startGame(){
   }
 
   function drawHorse(){
-    horseG.innerHTML = horseArt(HORSE_X, GROUND_Y - y) + riderArt(HORSE_X, GROUND_Y - y);
+    horseG.innerHTML = mountArt(HORSE_X, GROUND_Y - y, jumping);
   }
   function drawObstacles(){
-    obsG.innerHTML = obstacles.map(o =>
-      `<rect x="${o.x.toFixed(1)}" y="${(GROUND_Y - o.h).toFixed(1)}" width="${o.w.toFixed(1)}" height="${o.h.toFixed(1)}" rx="3" fill="#a5764a"/>
-       <rect x="${o.x.toFixed(1)}" y="${(GROUND_Y - o.h).toFixed(1)}" width="${o.w.toFixed(1)}" height="5" rx="2" fill="#c98a4b"/>`
-    ).join("");
+    // じめんに しっかり めりこませて（+8）、かげも つけて、うくのを ふせぐ
+    obsG.innerHTML = obstacles.map(o => {
+      const top = GROUND_Y - o.h;
+      return `<ellipse cx="${(o.x + o.w / 2).toFixed(1)}" cy="${GROUND_Y + 3}" rx="${(o.w / 2 + 3).toFixed(1)}" ry="4" fill="rgba(0,0,0,.18)"/>
+        <rect x="${o.x.toFixed(1)}" y="${top.toFixed(1)}" width="${o.w.toFixed(1)}" height="${(o.h + 10).toFixed(1)}" fill="#a5764a"/>
+        <rect x="${o.x.toFixed(1)}" y="${top.toFixed(1)}" width="${o.w.toFixed(1)}" height="5" fill="#c98a4b"/>`;
+    }).join("");
   }
   function drawScenery(){ sceneG.innerHTML = scenery(scrollX); }
 
