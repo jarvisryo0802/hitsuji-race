@@ -299,12 +299,16 @@ html,body{
 .gwalksvg{ width:100%; height:auto; display:block }
 
 /* ---- じょうばたいけん ---- */
-.hwrap{ position:relative; border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer }
-.hwrap.shake{ animation:hshake .3s }
+#horse{ padding:8px 10px 12px; gap:8px; justify-content:flex-start }
+.horsebody{ flex:1; min-height:0; width:100%; max-width:520px; display:flex;
+  flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch }
+.hgamewrap{ position:relative; flex:1; min-height:0; width:calc(100% + 20px); margin:0 -10px;
+  display:flex; overflow:hidden; touch-action:none; cursor:pointer }
+.hgamewrap.shake{ animation:hshake .3s }
 @keyframes hshake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-.hsvg{ width:100%; height:auto; display:block }
+.hsvg{ width:100%; height:100%; display:block }
 .hhud{ position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between;
-  font-size:15px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.3); pointer-events:none }
+  font-size:15px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.3); pointer-events:none; z-index:2 }
 .hboard{ background:#f2f8fb; border-radius:14px; padding:10px 12px; margin:10px 0 }
 .hrow{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#4a6b7a;
   padding:3px 0; border-bottom:1px solid #e2eaf0 }

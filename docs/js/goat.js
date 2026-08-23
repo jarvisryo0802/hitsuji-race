@@ -128,19 +128,19 @@ function showConfirm(level){
 const VIEW_W = 220, VIEW_H = 300, GOAT_Y = 230, PPM = 3;
 
 function startWalk(level){
-  const pathW    = 100 - (level - 1) * 5;                 // みちの はば（せまいほど むずかしい）
-  const wanderA  = 30 + level * 4;                         // やぎが かってに よろける つよさ
-  const baseSpeed = 3.2 + (level - 1) * 0.35;               // びょうそく（メートル）
+  const pathW    = 54 - (level - 1) * 3;                    // みちの はば（せまいほど むずかしい）
+  const wanderA  = 46 + level * 5;                           // やぎが かってに よろける つよさ
+  const baseSpeed = 6.0 + (level - 1) * 0.5;                 // びょうそく（メートル）。はやめ
 
   $("#goatStage").innerHTML = `
     <p class="stagettl">Lv.${level} の やぎと おさんぽ！</p>
-    <p class="hintline">ゆびで ドラッグして やぎを <b>みちの うえ</b> に リードしよう。<br>
+    <p class="hintline">やぎは おもくて すぐには いうことを きかないよ。<br>
+      おなじ ほうこうに <b>ながく ドラッグしつづける</b>と、じわじわ うごく。<br>
       みちの そとの くさを たべすぎると おなかいっぱいで おしまい！</p>
     <div class="gwalkwrap">
       <svg class="gwalksvg" id="gWalkSvg" viewBox="0 0 ${VIEW_W} ${VIEW_H}" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="#9ddc84"/>
         <path id="gPath" fill="none" stroke="#e3c9a0" stroke-linecap="round"/>
-        <path id="gPathLine" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="7 8" opacity=".7"/>
         <g id="gWalker"></g>
       </svg>
       <div class="hhud">
@@ -152,17 +152,17 @@ function startWalk(level){
 
   const svg = $("#gWalkSvg");
   const pathEl = $("#gPath");
-  const lineEl = $("#gPathLine");
   const walker = $("#gWalker");
   const distEl = $("#gDist");
   const fullBar = $("#gFullBar");
   const fullWrap = $("#gFullWrap");
 
-  // びっしり サンプリングして、ふとい ストロークで みちを えがく
+  // びっしり サンプリングして、ふとい ストロークで みちを えがく。
+  // みちじたいは ゆるやかに するだけ（クネクネの メインは やぎの きまぐれさ）
   const ROWS = 26;
   function centerX(d){
-    const raw = 110 + Math.sin(d * 0.05) * 60 + Math.sin(d * 0.13 + 1.3) * 26;
-    return clamp(raw, 60, 160);
+    const raw = 110 + Math.sin(d * 0.018) * 22 + Math.sin(d * 0.05 + 1.3) * 8;
+    return clamp(raw, 80, 140);
   }
 
   let goatX = 110, goatVX = 0, fullness = 0, distance = 0;
@@ -171,17 +171,15 @@ function startWalk(level){
   let alive = true, raf = 0, timer = 0, last = performance.now();
 
   function drawPath(){
-    let d = "", dl = "";
+    let d = "";
     for (let i = 0; i <= ROWS; i++){
       const y = (VIEW_H / ROWS) * i;
       const ahead = (GOAT_Y - y) / PPM;
       const cx = centerX(distance + ahead);
-      d  += (i ? "L" : "M") + cx.toFixed(1) + "," + y.toFixed(1);
-      dl += (i ? "L" : "M") + cx.toFixed(1) + "," + y.toFixed(1);
+      d += (i ? "L" : "M") + cx.toFixed(1) + "," + y.toFixed(1);
     }
     pathEl.setAttribute("d", d);
     pathEl.setAttribute("stroke-width", pathW);
-    lineEl.setAttribute("d", dl);
   }
 
   function drawGoat(face){
@@ -194,8 +192,12 @@ function startWalk(level){
     fullWrap.classList.toggle("warn", fullness > 65);
   }
 
-  // ゆびで ドラッグして やぎを うごかす
-  let dragging = false, lastPX = 0;
+  // ゆびで ドラッグして やぎを うごかす。おもい ものを ひっぱる かんじに
+  // したいので、ドラッグの いどうりょうを そのまま そくどに しない。
+  // ドラッグを はじめた ところからの「ずれ」を ちからとして あたえ、
+  // ちからは じわじわ（かそくど）としか きかないようにする
+  const PULL_ACCEL = 85, PULL_RANGE = 60;
+  let dragging = false, dragStartX = 0, pullX = 0;
   function pointToX(clientX){
     const pt = svg.createSVGPoint();
     pt.x = clientX; pt.y = 0;
@@ -205,18 +207,16 @@ function startWalk(level){
   }
   svg.addEventListener("pointerdown", (e) => {
     dragging = true;
-    lastPX = pointToX(e.clientX);
+    dragStartX = pointToX(e.clientX);
+    pullX = 0;
     svg.setPointerCapture && svg.setPointerCapture(e.pointerId);
   });
   svg.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    const px = pointToX(e.clientX);
-    const dx = px - lastPX;
-    lastPX = px;
-    goatVX += dx * 7;   // ドラッグの いきおいを そのまま つたえる
+    pullX = pointToX(e.clientX) - dragStartX;
   });
   ["pointerup", "pointercancel", "pointerleave"].forEach(ev =>
-    svg.addEventListener(ev, () => { dragging = false; }));
+    svg.addEventListener(ev, () => { dragging = false; pullX = 0; }));
 
   function loop(ts){
     if (!alive) return;
@@ -225,18 +225,23 @@ function startWalk(level){
     last = ts;
     elapsed += dt;
 
-    // やぎ じしんの きまぐれな よろけ
-    if (elapsed >= nextWanderAt){
-      wanderDir = [-1, 0, 1][Math.floor(Math.random() * 3)];
-      nextWanderAt = elapsed + rand(0.8, 1.7);
+    if (dragging){
+      const force = clamp(pullX / PULL_RANGE, -1, 1) * PULL_ACCEL;
+      goatVX += force * dt;
+    } else {
+      // やぎ じしんの きまぐれな よろけ（ひっぱっていない あいだ だけ）
+      if (elapsed >= nextWanderAt){
+        wanderDir = [-1, 0, 1][Math.floor(Math.random() * 3)];
+        nextWanderAt = elapsed + rand(0.6, 1.4);
+      }
+      goatVX += wanderDir * wanderA * dt;
+      goatVX *= Math.max(0, 1 - 2.2 * dt);          // まさつで だんだん おそくなる
     }
-    if (!dragging) goatVX += wanderDir * wanderA * dt;
 
-    goatVX *= Math.max(0, 1 - 2.6 * dt);          // まさつで だんだん おそくなる
     goatVX = clamp(goatVX, -170, 170);
     goatX = clamp(goatX + goatVX * dt, 14, VIEW_W - 14);
 
-    distance += baseSpeed * dt + Math.min(2.2, distance * 0.0035) * dt;
+    distance += baseSpeed * dt + Math.min(3.5, distance * 0.005) * dt;
 
     const cx = centerX(distance);
     const offPath = Math.abs(goatX - cx) > pathW / 2;

@@ -42,13 +42,15 @@ function boardHTML(board){
 export function renderHorseEntry(){
   const board = loadBoard();
   $("#horseStage").innerHTML = `
-    <p class="stagettl">🐎 じょうばたいけん</p>
-    <p class="hintline">がめんの どこでも タップすると ジャンプ！<br>
-      しょうがいぶつに ${HORSE_LIVES}かい あたったら おわりだよ。<br>
-      すすむほど しょうがいぶつが おおきく はやく なるよ。</p>
-    ${boardHTML(board)}
-    <button class="btn big pink" id="hStartBtn">🐎 <b>${HORSE_PRICE}</b>えんで スタート！</button>
-    <p class="note center">もっている おかね：💰 ${S.data.money.toLocaleString()}えん</p>`;
+    <div class="card center">
+      <p class="stagettl">🐎 じょうばたいけん</p>
+      <p class="hintline">がめんの どこでも タップすると ジャンプ！<br>
+        しょうがいぶつに ${HORSE_LIVES}かい あたったら おわりだよ。<br>
+        すすむほど しょうがいぶつが おおきく はやく なるよ。</p>
+      ${boardHTML(board)}
+      <button class="btn big pink" id="hStartBtn">🐎 <b>${HORSE_PRICE}</b>えんで スタート！</button>
+      <p class="note center">もっている おかね：💰 ${S.data.money.toLocaleString()}えん</p>
+    </div>`;
   const btn = $("#hStartBtn");
   btn.disabled = S.data.money < HORSE_PRICE;
   btn.onclick = () => {
@@ -57,20 +59,68 @@ export function renderHorseEntry(){
   };
 }
 
+/* ---------- ひとが うまに のった え（horseArt と おなじ きじゅんてん）---------- */
+function riderArt(x, y){
+  return `<g transform="translate(${x},${y})">
+    <path d="M-9,-14 Q-1,-23 7,-14" stroke="#3a2a1a" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <rect x="-4.5" y="-32" width="12" height="18" rx="5.5" fill="#ff8a2b"/>
+    <rect x="6" y="-29" width="11" height="4.5" rx="2.2" fill="#ff8a2b" transform="rotate(-16 6 -29)"/>
+    <circle cx="2" cy="-38" r="6.8" fill="#f6d3ae"/>
+    <path d="M-4.8,-41 a6.8,6.8 0 0 1 13.6,0 q-6.8,-4.6 -13.6,0z" fill="#5a4636"/>
+  </g>`;
+}
+
+/* ---------- けしき：とおくに ふじさん、くも・おか・じめんの すじが スクロール ---------- */
+const VIEW_W = 300, VIEW_H = 480, GROUND_Y = 380;
+
+function fujiArt(scrollX){
+  const dx = -(scrollX * 0.04) % VIEW_W;
+  return `<g transform="translate(${dx.toFixed(1)},0)">
+      <polygon points="150,120 260,300 40,300" fill="#93a3c9"/>
+      <polygon points="150,120 185,182 178,190 165,168 158,182 150,168 142,182 135,168 122,190 115,182" fill="#f4f7ff"/>
+      <polygon points="150,120 260,300 220,300 150,168" fill="#7f90b8" opacity=".55"/>
+    </g>
+    <g transform="translate(${(dx + VIEW_W).toFixed(1)},0)">
+      <polygon points="150,120 260,300 40,300" fill="#93a3c9"/>
+      <polygon points="150,120 185,182 178,190 165,168 158,182 150,168 142,182 135,168 122,190 115,182" fill="#f4f7ff"/>
+      <polygon points="150,120 260,300 220,300 150,168" fill="#7f90b8" opacity=".55"/>
+    </g>`;
+}
+
+function tileLayer(scrollX, patW, unit){
+  let s = "";
+  const start = -patW - (scrollX % patW);
+  for (let x = start; x < VIEW_W + patW; x += patW){
+    s += `<g transform="translate(${x.toFixed(1)},0)">${unit}</g>`;
+  }
+  return s;
+}
+const CLOUD = `<ellipse cx="30" cy="60" rx="26" ry="13" fill="#fff" opacity=".85"/>
+  <ellipse cx="52" cy="54" rx="18" ry="10" fill="#fff" opacity=".85"/>`;
+const HILL = `<ellipse cx="60" cy="${GROUND_Y + 30}" rx="130" ry="46" fill="#8fd07a"/>`;
+const DASH = `<rect x="0" y="${GROUND_Y + 14}" width="16" height="5" rx="2.5" fill="#fffaf0" opacity=".8"/>`;
+
+function scenery(scrollX){
+  return `
+    <rect x="0" y="0" width="${VIEW_W}" height="${VIEW_H}" fill="#bfe6ff"/>
+    ${fujiArt(scrollX)}
+    ${tileLayer(scrollX * 0.15, 160, CLOUD)}
+    ${tileLayer(scrollX * 0.4, 220, HILL)}
+    <rect x="0" y="${GROUND_Y}" width="${VIEW_W}" height="${VIEW_H - GROUND_Y}" fill="#8fd36a"/>
+    <rect x="0" y="${GROUND_Y}" width="${VIEW_W}" height="6" fill="#79c158"/>
+    ${tileLayer(scrollX, 40, DASH)}`;
+}
+
 /* =========================================================
    ② ゲーム ほんたい
    ========================================================= */
 function startGame(){
-  const GROUND_Y = 132, HORSE_X = 70, HB = 16;   // HB=ひつじ／うまの あたり判定 はんぶんの はば
+  const HORSE_X = 75, HB = 16;   // HB=うまの あたり判定 はんぶんの はば
 
   $("#horseStage").innerHTML = `
-    <div class="hwrap" id="hArea">
-      <svg class="hsvg" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-        <rect x="-20" y="0" width="340" height="170" fill="#bfe6ff"/>
-        <ellipse cx="60" cy="30" rx="90" ry="26" fill="#eaf7ff"/>
-        <ellipse cx="240" cy="24" rx="70" ry="20" fill="#eaf7ff"/>
-        <rect x="-20" y="${GROUND_Y}" width="340" height="38" fill="#8fd36a"/>
-        <rect x="-20" y="${GROUND_Y}" width="340" height="6" fill="#79c158"/>
+    <div class="hgamewrap" id="hArea">
+      <svg class="hsvg" viewBox="0 0 ${VIEW_W} ${VIEW_H}" xmlns="http://www.w3.org/2000/svg">
+        <g id="hScenery"></g>
         <g id="hObstacles"></g>
         <g id="hHorse"></g>
       </svg>
@@ -78,16 +128,16 @@ function startGame(){
         <span id="hDist">0m</span>
         <span id="hLives">${"❤️".repeat(HORSE_LIVES)}</span>
       </div>
-    </div>
-    <p class="note center">がめんを タップして ジャンプ！</p>`;
+    </div>`;
 
-  const area  = $("#hArea");
+  const area   = $("#hArea");
+  const sceneG = $("#hScenery");
   const horseG = $("#hHorse");
-  const obsG  = $("#hObstacles");
+  const obsG   = $("#hObstacles");
   const distEl = $("#hDist");
   const livesEl = $("#hLives");
 
-  let distance = 0, misses = 0, alive = true;
+  let distance = 0, misses = 0, alive = true, scrollX = 0;
   let y = 0, vy = 0, jumping = false;
   let obstacles = [];
   let spawnGap = 260, scrolledSincePrev = 0;
@@ -100,16 +150,19 @@ function startGame(){
   }
 
   function spawnObstacle(stage){
-    obstacles.push({ x: 310, w: rand(stage.w[0], stage.w[1]), h: rand(stage.h[0], stage.h[1]), resolved: false });
+    obstacles.push({ x: VIEW_W + 10, w: rand(stage.w[0], stage.w[1]), h: rand(stage.h[0], stage.h[1]), resolved: false });
   }
 
-  function drawHorse(){ horseG.innerHTML = horseArt(HORSE_X, GROUND_Y - y); }
+  function drawHorse(){
+    horseG.innerHTML = horseArt(HORSE_X, GROUND_Y - y) + riderArt(HORSE_X, GROUND_Y - y);
+  }
   function drawObstacles(){
     obsG.innerHTML = obstacles.map(o =>
       `<rect x="${o.x.toFixed(1)}" y="${(GROUND_Y - o.h).toFixed(1)}" width="${o.w.toFixed(1)}" height="${o.h.toFixed(1)}" rx="3" fill="#a5764a"/>
        <rect x="${o.x.toFixed(1)}" y="${(GROUND_Y - o.h).toFixed(1)}" width="${o.w.toFixed(1)}" height="5" rx="2" fill="#c98a4b"/>`
     ).join("");
   }
+  function drawScenery(){ sceneG.innerHTML = scenery(scrollX); }
 
   function jump(){
     if (!alive || jumping) return;
@@ -134,6 +187,7 @@ function startGame(){
     last = ts;
 
     const stage = stageFor(distance);
+    scrollX += stage.speed * dt;
 
     if (jumping){
       vy -= HORSE_GRAVITY * dt;
@@ -160,7 +214,7 @@ function startGame(){
       spawnGap = rand(stage.gap[0], stage.gap[1]);
     }
 
-    drawHorse(); drawObstacles();
+    drawScenery(); drawHorse(); drawObstacles();
     if (!alive) return;
     raf = requestAnimationFrame(loop);
     timer = setTimeout(() => loop(performance.now()), 40);
@@ -173,7 +227,7 @@ function startGame(){
     setTimeout(() => showResult(Math.floor(distance)), 400);
   }
 
-  drawHorse(); drawObstacles();
+  drawScenery(); drawHorse(); drawObstacles();
   raf = requestAnimationFrame(loop);
   timer = setTimeout(() => loop(performance.now()), 40);
 }
@@ -188,12 +242,14 @@ function showResult(distance){
   if (madeTop10 && rank <= 3) confetti(40);
 
   $("#horseStage").innerHTML = `
-    <div class="carefin">
-      <div class="fintitle">${distance}m すすんだ！</div>
-      <div class="eat">${madeTop10 ? "🏆" : "🐎"}</div>
-      <p class="note">${madeTop10 ? `ランキング <b>${rank}い</b> に ランクイン！` : "つぎは もっと とおくまで いけるかな？"}</p>
-      ${boardHTML(board)}
-      <button class="btn" id="hAgainBtn">もういちど</button>
+    <div class="card">
+      <div class="carefin">
+        <div class="fintitle">${distance}m すすんだ！</div>
+        <div class="eat">${madeTop10 ? "🏆" : "🐎"}</div>
+        <p class="note">${madeTop10 ? `ランキング <b>${rank}い</b> に ランクイン！` : "つぎは もっと とおくまで いけるかな？"}</p>
+        ${boardHTML(board)}
+        <button class="btn" id="hAgainBtn">もういちど</button>
+      </div>
     </div>`;
   $("#hAgainBtn").onclick = () => { tap(); renderHorseEntry(); };
 }
